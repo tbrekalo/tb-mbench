@@ -35,16 +35,17 @@ struct WindowEntry {
 
 std::vector<KMer> NaiveMinimize(MinimizeArgs args) {
   std::vector<KMer> dst;
-  if (args.seq.n_bases() == 0) {
+  if (args.seq.size() == 0) {
     return dst;
   }
 
+  dst.reserve(args.seq.size());
   auto const mask = calc_mask(args.kmer_length);
-  for (std::size_t i = 0; i + args.kmer_length < args.seq.n_bases(); ++i) {
+  for (std::size_t i = 0; i + args.kmer_length < args.seq.size(); ++i) {
     KMer::value_type min_hash;
-    KMer::position_type min_position = args.seq.n_bases();
+    KMer::position_type min_position = args.seq.size();
     for (std::size_t j = 0; j < args.window_length &&
-                            i + j + args.kmer_length - 1 < args.seq.n_bases();
+                            i + j + args.kmer_length - 1 < args.seq.size();
          ++j) {
       KMer::value_type value;
       for (std::size_t k = 0; k < args.kmer_length; ++k) {
@@ -52,7 +53,7 @@ std::vector<KMer> NaiveMinimize(MinimizeArgs args) {
       }
 
       auto hash_value = hash(value, mask);
-      if (min_position == args.seq.n_bases() || hash_value < min_hash) {
+      if (min_position == args.seq.size() || hash_value < min_hash) {
         min_hash = hash_value;
         min_position = i + j;
       }
@@ -67,10 +68,11 @@ std::vector<KMer> NaiveMinimize(MinimizeArgs args) {
 
 std::vector<KMer> DequeMinimize(MinimizeArgs args) {
   std::vector<KMer> dst;
-  if (args.seq.n_bases() == 0) {
+  if (args.seq.size() == 0) {
     return dst;
   }
 
+  dst.reserve(args.seq.size());
   auto const mask = calc_mask(args.kmer_length);
   std::deque<WindowEntry> window;
 
@@ -90,7 +92,7 @@ std::vector<KMer> DequeMinimize(MinimizeArgs args) {
   };
 
   KMer::value_type value;
-  for (std::size_t i = 0; i < args.seq.n_bases(); ++i) {
+  for (std::size_t i = 0; i < args.seq.size(); ++i) {
     if (i >= args.window_length + args.kmer_length - 1) {
       pop(i - (args.kmer_length - 1));
     }
@@ -101,6 +103,56 @@ std::vector<KMer> DequeMinimize(MinimizeArgs args) {
       if (i > args.window_length + args.kmer_length - 2 &&
           (dst.empty() || dst.back().position() != window.front().position)) {
         dst.emplace_back(window.front().hash_value, window.front().position, 0);
+      }
+    }
+  }
+
+  return dst;
+}
+
+std::vector<KMer> InplaceMinimize(MinimizeArgs args) {
+  std::vector<KMer> dst;
+  if (args.seq.size() == 0) {
+    return dst;
+  }
+
+  dst.reserve(args.seq.size());
+  auto const mask = calc_mask(args.kmer_length);
+
+  std::size_t front_idx = 0;
+  std::size_t back_idx = 0;
+  std::vector<KMer> window_buffer(args.seq.size());
+
+  auto push = [&front_idx, &back_idx,
+               &window_buffer](KMer::value_type hash_value,
+                               KMer::position_type position) -> void {
+    for (; front_idx < back_idx &&
+           window_buffer[back_idx - 1].value() > hash_value;
+         --back_idx)
+      ;
+    window_buffer[back_idx++] = KMer(hash_value, position, 0);
+  };
+
+  auto pop = [&front_idx, &window_buffer,
+              w = args.window_length](KMer::position_type position) {
+    if (window_buffer[front_idx].position() <= position - w) {
+      ++front_idx;
+    }
+  };
+
+  KMer::value_type value;
+  for (std::size_t i = 0; i < args.seq.size(); ++i) {
+    if (i >= args.window_length + args.kmer_length - 1) {
+      pop(i - (args.kmer_length - 1));
+    }
+
+    value = ((value << 2) | args.seq.Code(i)) & mask;
+    if (i >= args.kmer_length - 1) {
+      push(hash(value, mask), i - (args.kmer_length - 1));
+      if (i > args.window_length + args.kmer_length - 2 &&
+          (dst.empty() ||
+           dst.back().position() != window_buffer[front_idx].position())) {
+        dst.push_back(window_buffer[front_idx]);
       }
     }
   }

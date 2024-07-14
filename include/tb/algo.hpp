@@ -12,5 +12,6 @@ struct MinimizeArgs {
 
 std::vector<KMer> NaiveMinimize(MinimizeArgs);
 std::vector<KMer> DequeMinimize(MinimizeArgs);
+std::vector<KMer> InplaceMinimize(MinimizeArgs);
 
 } // namespace tb

@@ -26,12 +26,19 @@ protected:
 TEST_F(MinimizeTest, NaiveDensity) {
   auto minimizers = tb::NaiveMinimize(args_);
   EXPECT_GE(minimizers.size(),
-            static_cast<double>(seq_.n_bases()) / args_.window_length);
+            static_cast<double>(seq_.size()) / args_.window_length);
 }
 
-TEST_F(MinimizeTest, DequeAgainsNaive) {
+TEST_F(MinimizeTest, DequeVsNaive) {
   auto naive_minimizers = tb::NaiveMinimize(args_);
   auto deque_minimizers = tb::DequeMinimize(args_);
 
   EXPECT_EQ(naive_minimizers, deque_minimizers);
+}
+
+TEST_F(MinimizeTest, InplaceVsNaive) {
+  auto naive_minimizers = tb::NaiveMinimize(args_);
+  auto inplace_minimizers = tb::InplaceMinimize(args_);
+
+  EXPECT_EQ(naive_minimizers, inplace_minimizers);
 }

@@ -21,7 +21,7 @@ public:
     return Code(n_bases_ - i - 1) ^ 3;
   }
 
-  std::size_t n_bases() const noexcept { return n_bases_; }
+  std::size_t size() const noexcept { return n_bases_; }
 };
 
 class KMer {
@@ -32,19 +32,19 @@ class KMer {
 
 public:
   using value_type = ValueTypeImpl;
-  using position_type = std::uint32_t;
+  using position_type = std::int32_t;
 
   KMer() = default;
   KMer(value_type value, position_type pos, bool strand)
       : value_(value),
-        pos_strand_((static_cast<std::uint64_t>(strand) << 32) | pos) {}
+        pos_strand_((static_cast<std::uint64_t>(strand) << 31) | pos) {}
 
   [[gnu::always_inline]] value_type value() const noexcept { return value_; }
   [[gnu::always_inline]] position_type position() const noexcept {
-    return pos_strand_;
+    return pos_strand_ & ((1ul << 31ul) - 1ul);
   }
   [[gnu::always_inline]] bool strand() const noexcept {
-    return (pos_strand_ >> 32) & 1;
+    return (pos_strand_ >> 31) & 1;
   }
 
   friend auto operator<=>(KMer const &lhs, KMer const &rhs) = default;

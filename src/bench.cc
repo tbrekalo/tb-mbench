@@ -26,4 +26,8 @@ BENCHMARK_TEMPLATE(BM_MinimizeW5K15, tb::DequeMinimize)
     ->RangeMultiplier(4)
     ->Range(1 << 10, 1 << 20);
 
+BENCHMARK_TEMPLATE(BM_MinimizeW5K15, tb::InplaceMinimize)
+    ->RangeMultiplier(4)
+    ->Range(1 << 10, 1 << 20);
+
 } // namespace
