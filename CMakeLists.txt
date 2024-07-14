@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(cppbox LANGUAGES C CXX)
+project(mbench LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 26)
 
@@ -11,32 +11,50 @@ option(profile "Compile with profiling flags" OFF)
 
 include(FetchContent)
 FetchContent_Declare(
-  doctest
-  GIT_REPOSITORY https://github.com/doctest/doctest
-  GIT_TAG v2.4.11)
+  googletest
+  GIT_REPOSITORY https://github.com/google/googletest
+  GIT_TAG v1.14.0)
 
 FetchContent_Declare(
-  nanobench
-  GIT_REPOSITORY https://github.com/martinus/nanobench
-  GIT_TAG v4.3.11)
+  benchmark
+  GIT_REPOSITORY https://github.com/google/benchmark
+  GIT_TAG v1.8.4)
 
-FetchContent_MakeAvailable(doctest nanobench)
+FetchContent_GetProperties(googletest)
+if(NOT googletest_POPULATED)
+  FetchContent_Populate(googletest)
+  add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR}
+                   EXCLUDE_FROM_ALL)
+endif()
 
-add_executable(cppbox-bench src/main.cc)
-target_link_libraries(cppbox-bench PRIVATE doctest nanobench)
+FetchContent_GetProperties(benchmark)
+if(NOT benchmark_POPULATED)
+  FetchContent_Populate(benchmark)
+  add_subdirectory(${benchmark_SOURCE_DIR} ${benchmark_BINARY_DIR}
+                   EXCLUDE_FROM_ALL)
+endif()
+
+add_library(lib src/data.cc src/algo.cc)
+target_include_directories(lib PUBLIC include)
 target_compile_options(
-  cppbox-bench
-  PRIVATE $<$<CONFIG:Debug,RelWithDebInfo>:-fsanitize=address
-          -fsanitize=undefined -fno-omit-frame-pointer>
-          $<$<CONFIG:Release>:-march=native>)
+  lib
+  PUBLIC $<$<CONFIG:Debug,RelWithDebInfo>:-fsanitize=address
+         -fsanitize=undefined -fno-omit-frame-pointer>
+         $<$<CONFIG:Release>:-march=native>)
 target_link_options(
-  cppbox-bench PRIVATE $<$<CONFIG:Debug,RelWithDebInfo>:-fsanitize=address
+  lib PUBLIC $<$<CONFIG:Debug,RelWithDebInfo>:-fsanitize=address
   -fsanitize=undefined>)
 
 if(profile)
   target_compile_options(
-    cppbox-bench
-    PRIVATE -g -fno-omit-frame-pointer
-            $<$<CXX_COMPILER_ID:Clang>:-Rpass-analysis=loop-vectorize>
-            $<$<CXX_COMPILER_ID:Clang>:-Rpass-analysis=loop-unroll>)
+    lib
+    PUBLIC -g -fno-omit-frame-pointer
+           $<$<CXX_COMPILER_ID:Clang>:-Rpass-analysis=loop-vectorize>
+           $<$<CXX_COMPILER_ID:Clang>:-Rpass-analysis=loop-unroll>)
 endif()
+
+add_executable(bench src/bench.cc)
+target_link_libraries(bench PRIVATE benchmark::benchmark lib)
+
+add_executable(test src/test.cc)
+target_link_libraries(test PRIVATE GTest::gtest_main lib)
