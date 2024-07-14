@@ -1,5 +1,7 @@
 #include "tb/algo.hpp"
 
+#include <algorithm>
+#include <cassert>
 #include <deque>
 
 namespace tb {
@@ -116,26 +118,25 @@ std::vector<KMer> InplaceMinimize(MinimizeArgs args) {
     return dst;
   }
 
-  dst.reserve(args.seq.size());
+  std::int64_t idx = -1;
+  dst.resize(args.seq.size() - args.kmer_length);
   auto const mask = calc_mask(args.kmer_length);
 
-  std::size_t front_idx = 0;
-  std::size_t back_idx = 0;
-  std::vector<KMer> window_buffer(args.seq.size());
+  std::int64_t front_idx = 1;
+  std::int64_t back_idx = 1;
 
   auto push = [&front_idx, &back_idx,
-               &window_buffer](KMer::value_type hash_value,
-                               KMer::position_type position) -> void {
-    for (; front_idx < back_idx &&
-           window_buffer[back_idx - 1].value() > hash_value;
+               &dst](KMer::value_type hash_value,
+                     KMer::position_type position) -> void {
+    for (; front_idx < back_idx && dst[back_idx - 1].value() > hash_value;
          --back_idx)
       ;
-    window_buffer[back_idx++] = KMer(hash_value, position, 0);
+    dst[back_idx++] = KMer(hash_value, position, 0);
   };
 
-  auto pop = [&front_idx, &window_buffer,
+  auto pop = [&front_idx, &dst,
               w = args.window_length](KMer::position_type position) {
-    if (window_buffer[front_idx].position() <= position - w) {
+    if (dst[front_idx].position() <= position - w) {
       ++front_idx;
     }
   };
@@ -150,13 +151,18 @@ std::vector<KMer> InplaceMinimize(MinimizeArgs args) {
     if (i >= args.kmer_length - 1) {
       push(hash(value, mask), i - (args.kmer_length - 1));
       if (i > args.window_length + args.kmer_length - 2 &&
-          (dst.empty() ||
-           dst.back().position() != window_buffer[front_idx].position())) {
-        dst.push_back(window_buffer[front_idx]);
+          (idx < 0 || dst[idx].position() != dst[front_idx].position())) {
+        if (idx + 1 == front_idx) {
+          std::shift_right(dst.begin() + front_idx++, dst.begin() + ++back_idx,
+                           1);
+        }
+        assert(idx + 1 < front_idx);
+        dst[++idx] = dst[front_idx];
       }
     }
   }
 
+  dst.resize(idx + 1);
   return dst;
 }
 
