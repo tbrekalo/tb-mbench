@@ -54,7 +54,7 @@ if(profile)
 endif()
 
 add_executable(bench src/bench.cc)
-target_link_libraries(bench PRIVATE benchmark::benchmark lib)
+target_link_libraries(bench PRIVATE benchmark::benchmark_main lib)
 
 add_executable(test src/test.cc)
 target_link_libraries(test PRIVATE GTest::gtest_main lib)

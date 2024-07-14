@@ -1,5 +1,7 @@
 #include "tb/algo.hpp"
 
+#include <deque>
+
 namespace tb {
 
 namespace {
@@ -24,6 +26,11 @@ constexpr auto hash =
   return key;
 };
 
+struct WindowEntry {
+  KMer::value_type hash_value;
+  KMer::position_type position;
+};
+
 } // namespace
 
 std::vector<KMer> NaiveMinimize(MinimizeArgs args) {
@@ -32,10 +39,10 @@ std::vector<KMer> NaiveMinimize(MinimizeArgs args) {
     return dst;
   }
 
-  const auto mask = calc_mask(args.kmer_length);
-  for (std::size_t i = 0; i < args.seq.n_bases(); ++i) {
-    KMer::value_type min_value;
-    KMer::position_type min_position = i;
+  auto const mask = calc_mask(args.kmer_length);
+  for (std::size_t i = 0; i + args.kmer_length < args.seq.n_bases(); ++i) {
+    KMer::value_type min_hash;
+    KMer::position_type min_position = args.seq.n_bases();
     for (std::size_t j = 0; j < args.window_length &&
                             i + j + args.kmer_length - 1 < args.seq.n_bases();
          ++j) {
@@ -44,13 +51,58 @@ std::vector<KMer> NaiveMinimize(MinimizeArgs args) {
         value = (value << 2) | args.seq.Code(i + j + k);
       }
 
-      value = hash(value, mask);
-      if (min_position == i || value < min_value) {
-        min_value = value;
+      auto hash_value = hash(value, mask);
+      if (min_position == args.seq.n_bases() || hash_value < min_hash) {
+        min_hash = hash_value;
         min_position = i + j;
       }
     }
-    dst.emplace_back(min_position, min_position, 0);
+    if (dst.empty() || dst.back().position() != min_position) {
+      dst.emplace_back(min_hash, min_position, 0);
+    }
+  }
+
+  return dst;
+}
+
+std::vector<KMer> DequeMinimize(MinimizeArgs args) {
+  std::vector<KMer> dst;
+  if (args.seq.n_bases() == 0) {
+    return dst;
+  }
+
+  auto const mask = calc_mask(args.kmer_length);
+  std::deque<WindowEntry> window;
+
+  auto push = [&window](KMer::value_type hash_value,
+                        KMer::position_type position) -> void {
+    while (!window.empty() && window.back().hash_value > hash_value) {
+      window.pop_back();
+    }
+    window.push_back(
+        WindowEntry{.hash_value = hash_value, .position = position});
+  };
+
+  auto pop = [&window, w = args.window_length](KMer::position_type position) {
+    if (window.front().position <= position - w) {
+      window.pop_front();
+    }
+  };
+
+  KMer::value_type value;
+  for (std::size_t i = 0; i < args.seq.n_bases(); ++i) {
+    if (i >= args.window_length + args.kmer_length - 1) {
+      pop(i - (args.kmer_length - 1));
+    }
+
+    value = ((value << 2) | args.seq.Code(i)) & mask;
+    if (i >= args.kmer_length - 1) {
+      push(hash(value, mask), i - (args.kmer_length - 1));
+      if (i > args.window_length + args.kmer_length - 2 &&
+          (dst.empty() || dst.back().position() != window.front().position)) {
+        dst.emplace_back(window.front().hash_value, window.front().position, 0);
+      }
+    }
   }
 
   return dst;

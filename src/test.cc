@@ -11,21 +11,27 @@ constexpr int kSeed = 42;
 class MinimizeTest : public testing::Test {
 protected:
   MinimizeTest()
-      : seq_(1uz << 14uz, kSeed), kmer_length_(15), window_length_(5) {}
+      : seq_(1uz << 14uz, kSeed), args_(tb::MinimizeArgs{
+                                      .seq = seq_,
+                                      .window_length = 5,
+                                      .kmer_length = 15,
+                                  }) {}
 
   tb::MockSequence seq_;
-  std::uint32_t kmer_length_;
-  std::uint32_t window_length_;
+  tb::MinimizeArgs args_;
 };
 
 } // namespace
 
-TEST_F(MinimizeTest, Density) {
-  auto minimizers = tb::NaiveMinimize({
-      .seq = seq_,
-      .kmer_length = kmer_length_,
-      .window_length = window_length_,
-  });
-  EXPECT_TRUE(minimizers.size() >=
-              static_cast<double>(seq_.n_bases()) / window_length_);
+TEST_F(MinimizeTest, NaiveDensity) {
+  auto minimizers = tb::NaiveMinimize(args_);
+  EXPECT_GE(minimizers.size(),
+            static_cast<double>(seq_.n_bases()) / args_.window_length);
+}
+
+TEST_F(MinimizeTest, DequeAgainsNaive) {
+  auto naive_minimizers = tb::NaiveMinimize(args_);
+  auto deque_minimizers = tb::DequeMinimize(args_);
+
+  EXPECT_EQ(naive_minimizers, deque_minimizers);
 }

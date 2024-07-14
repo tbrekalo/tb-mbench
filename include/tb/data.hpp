@@ -40,12 +40,14 @@ public:
         pos_strand_((static_cast<std::uint64_t>(strand) << 32) | pos) {}
 
   [[gnu::always_inline]] value_type value() const noexcept { return value_; }
-  [[gnu::always_inline]] position_type pos() const noexcept {
+  [[gnu::always_inline]] position_type position() const noexcept {
     return pos_strand_;
   }
   [[gnu::always_inline]] bool strand() const noexcept {
     return (pos_strand_ >> 32) & 1;
   }
+
+  friend auto operator<=>(KMer const &lhs, KMer const &rhs) = default;
 };
 
 } // namespace tb
