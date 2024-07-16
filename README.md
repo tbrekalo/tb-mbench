@@ -32,11 +32,12 @@ cmake --build build
 - locked at 2.5Ghz
 
 ### Figures
-| function            |   avg ns per bp |   std ns per bp |
-|:--------------------|----------------:|----------------:|
-| tb::NaiveMinimize   |         89.2503 |        0.765395 |
-| tb::DequeMinimize   |         13.9247 |        4.51882  |
-| tb::InplaceMinimize |         12.465  |        5.3303   |
+| function            |   avg ns per bp |
+|:--------------------|----------------:|
+| tb::NaiveMinimize   |         91.3057 |
+| tb::RingMinimize    |         22.7854 |
+| tb::DequeMinimize   |         20.4661 |
+| tb::InplaceMinimize |         20.147  |
 
 ![](misc/perf.png)
 

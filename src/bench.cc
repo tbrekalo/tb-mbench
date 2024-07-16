@@ -18,16 +18,9 @@ template <auto MinimizeFn> void BM_MinimizeW5K15(benchmark::State &state) {
   }
 }
 
-BENCHMARK_TEMPLATE(BM_MinimizeW5K15, tb::NaiveMinimize)
-    ->RangeMultiplier(2)
-    ->Range(1 << 10, 1 << 16);
-
-BENCHMARK_TEMPLATE(BM_MinimizeW5K15, tb::DequeMinimize)
-    ->RangeMultiplier(2)
-    ->Range(1 << 10, 1 << 16);
-
-BENCHMARK_TEMPLATE(BM_MinimizeW5K15, tb::InplaceMinimize)
-    ->RangeMultiplier(2)
-    ->Range(1 << 10, 1 << 16);
+BENCHMARK_TEMPLATE(BM_MinimizeW5K15, tb::NaiveMinimize)->Arg(1'000'000);
+BENCHMARK_TEMPLATE(BM_MinimizeW5K15, tb::DequeMinimize)->Arg(1'000'000);
+BENCHMARK_TEMPLATE(BM_MinimizeW5K15, tb::InplaceMinimize)->Arg(1'000'000);
+BENCHMARK_TEMPLATE(BM_MinimizeW5K15, tb::RingMinimize)->Arg(1'000'000);
 
 } // namespace

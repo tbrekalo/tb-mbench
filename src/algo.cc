@@ -1,4 +1,5 @@
 #include "tb/algo.hpp"
+#include "tb/ring.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -26,11 +27,6 @@ constexpr auto hash =
   key = key ^ (key >> 28);
   key = (key + (key << 31)) & mask;
   return key;
-};
-
-struct WindowEntry {
-  KMer::value_type hash_value;
-  KMer::position_type position;
 };
 
 } // namespace
@@ -76,19 +72,18 @@ std::vector<KMer> DequeMinimize(MinimizeArgs args) {
 
   dst.reserve(args.seq.size());
   auto const mask = calc_mask(args.kmer_length);
-  std::deque<WindowEntry> window;
+  std::deque<KMer> window;
 
   auto push = [&window](KMer::value_type hash_value,
                         KMer::position_type position) -> void {
-    while (!window.empty() && window.back().hash_value > hash_value) {
+    while (!window.empty() && window.back().value() > hash_value) {
       window.pop_back();
     }
-    window.push_back(
-        WindowEntry{.hash_value = hash_value, .position = position});
+    window.emplace_back(hash_value, position, 0);
   };
 
   auto pop = [&window, w = args.window_length](KMer::position_type position) {
-    if (window.front().position <= position - w) {
+    if (window.front().position() <= position - w) {
       window.pop_front();
     }
   };
@@ -103,8 +98,8 @@ std::vector<KMer> DequeMinimize(MinimizeArgs args) {
     if (i >= args.kmer_length - 1) {
       push(hash(value, mask), i - (args.kmer_length - 1));
       if (i > args.window_length + args.kmer_length - 2 &&
-          (dst.empty() || dst.back().position() != window.front().position)) {
-        dst.emplace_back(window.front().hash_value, window.front().position, 0);
+          (dst.empty() || dst.back().position() != window.front().position())) {
+        dst.emplace_back(window.front().value(), window.front().position(), 0);
       }
     }
   }
@@ -163,6 +158,50 @@ std::vector<KMer> InplaceMinimize(MinimizeArgs args) {
   }
 
   dst.resize(idx + 1);
+  return dst;
+}
+
+std::vector<KMer> RingMinimize(MinimizeArgs args) {
+
+  std::vector<KMer> dst;
+  if (args.seq.size() == 0) {
+    return dst;
+  }
+
+  dst.reserve(args.seq.size());
+  auto const mask = calc_mask(args.kmer_length);
+  Ring window(args.window_length);
+
+  auto push = [&window](KMer::value_type hash_value,
+                        KMer::position_type position) -> void {
+    while (!window.empty() && window.back().value() > hash_value) {
+      window.pop_back();
+    }
+    window.push(KMer(hash_value, position, 0));
+  };
+
+  auto pop = [&window, w = args.window_length](KMer::position_type position) {
+    if (window.front().position() <= position - w) {
+      window.pop_front();
+    }
+  };
+
+  KMer::value_type value;
+  for (std::size_t i = 0; i < args.seq.size(); ++i) {
+    if (i >= args.window_length + args.kmer_length - 1) {
+      pop(i - (args.kmer_length - 1));
+    }
+
+    value = ((value << 2) | args.seq.Code(i)) & mask;
+    if (i >= args.kmer_length - 1) {
+      push(hash(value, mask), i - (args.kmer_length - 1));
+      if (i > args.window_length + args.kmer_length - 2 &&
+          (dst.empty() || dst.back().position() != window.front().position())) {
+        dst.emplace_back(window.front().value(), window.front().position(), 0);
+      }
+    }
+  }
+
   return dst;
 }
 

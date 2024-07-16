@@ -34,7 +34,7 @@ if(NOT benchmark_POPULATED)
                    EXCLUDE_FROM_ALL)
 endif()
 
-add_library(lib src/data.cc src/algo.cc)
+add_library(lib src/algo.cc src/data.cc src/ring.cc)
 target_include_directories(lib PUBLIC include)
 target_compile_options(
   lib
