@@ -35,3 +35,4 @@ build
 venv
 build-debug
 build-profile
+perf.data*
