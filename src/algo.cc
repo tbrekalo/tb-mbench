@@ -208,25 +208,7 @@ std::vector<KMer> RingMinimize(MinimizeArgs args) {
   return dst;
 }
 
-namespace {
-
-enum class ArgMinImpl { Seq, Unseq };
-
-template <ArgMinImpl ImplTag>
-std::vector<KMer> ArgminMinimizeImpl(MinimizeArgs args) {
-  auto min_element = [] consteval {
-    using Iter = std::vector<KMer::value_type>::iterator;
-    if constexpr (ImplTag == ArgMinImpl::Seq) {
-      return [](Iter first, Iter last) {
-        return std::min_element(std::execution::seq, first, last);
-      };
-    } else {
-      return [](Iter first, Iter last) {
-        return std::min_element(std::execution::unseq, first, last);
-      };
-    }
-  }();
-
+std::vector<KMer> ArgminMinimize(MinimizeArgs args) {
   std::vector<KMer> dst;
   if (args.seq.size() < args.window_length + args.kmer_length - 2) {
     return dst;
@@ -244,28 +226,19 @@ std::vector<KMer> ArgminMinimizeImpl(MinimizeArgs args) {
     }
   }
 
-  std::int64_t idx = -1;
+  std::size_t idx = 0, min_pos = 0;
   for (std::size_t i = args.window_length; i <= hashes.size(); ++i) {
-    if (auto min_pos = min_element(hashes.begin() + i - args.window_length,
-                                   hashes.begin() + i) -
-                       hashes.begin();
-        idx == -1 || dst[idx].position() != min_pos) {
-      dst[++idx] = KMer(hashes[min_pos], min_pos, 0);
-    }
+    min_pos = std::min_element(hashes.begin() + i - args.window_length,
+                               hashes.begin() + i) -
+              hashes.begin();
+    auto cond = idx == 0 || dst[idx - 1].position() != min_pos;
+    min_pos = cond * min_pos + (!cond) * dst[idx].position();
+    dst[idx] = KMer(hashes[min_pos], min_pos, 0);
+    idx += cond;
   }
 
-  dst.resize(idx + 1);
+  dst.resize(idx);
   return dst;
-}
-
-} // namespace
-
-std::vector<KMer> ArgminMinimize(MinimizeArgs args) {
-  return ArgminMinimizeImpl<ArgMinImpl::Seq>(args);
-}
-
-std::vector<KMer> ArgminUnseqMinimize(MinimizeArgs args) {
-  return ArgminMinimizeImpl<ArgMinImpl::Unseq>(args);
 }
 
 std::vector<KMer> ArgminEveMinimize(MinimizeArgs args) {

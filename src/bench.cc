@@ -5,26 +5,32 @@
 namespace {
 
 constexpr int kSeed = 42;
-constexpr std::size_t kNBases = 1'000'000uz;
+constexpr std::size_t kNBasesSmall = 1'000uz;
+constexpr std::size_t kNBasesLarge = 1'000'000uz;
 
-template <auto MinimizeFn> void BM_MinimizeW5K15(benchmark::State &state) {
-  tb::MockSequence seq(state.range(0), kSeed);
+template <auto MinimizeFn> void BM_Minimize(benchmark::State &state) {
   for (auto _ : state) {
+    state.PauseTiming();
+    tb::MockSequence seq(state.range(0), kSeed);
+    state.ResumeTiming();
+
     auto kmers = MinimizeFn({
         .seq = seq,
-        .window_length = 5,
-        .kmer_length = 15,
+        .window_length = 11,
+        .kmer_length = 21,
     });
+
     benchmark::DoNotOptimize(kmers.data());
   }
 }
 
-BENCHMARK_TEMPLATE(BM_MinimizeW5K15, tb::NaiveMinimize)->Arg(kNBases);
-BENCHMARK_TEMPLATE(BM_MinimizeW5K15, tb::DequeMinimize)->Arg(kNBases);
-BENCHMARK_TEMPLATE(BM_MinimizeW5K15, tb::InplaceMinimize)->Arg(kNBases);
-BENCHMARK_TEMPLATE(BM_MinimizeW5K15, tb::RingMinimize)->Arg(kNBases);
-BENCHMARK_TEMPLATE(BM_MinimizeW5K15, tb::ArgminMinimize)->Arg(kNBases);
-BENCHMARK_TEMPLATE(BM_MinimizeW5K15, tb::ArgminUnseqMinimize)->Arg(kNBases);
-BENCHMARK_TEMPLATE(BM_MinimizeW5K15, tb::ArgminEveMinimize)->Arg(kNBases);
+std::vector<std::vector<std::int64_t>> kArgList = {{kNBasesLarge}};
+
+BENCHMARK_TEMPLATE(BM_Minimize, tb::NaiveMinimize)->ArgsProduct(kArgList);
+BENCHMARK_TEMPLATE(BM_Minimize, tb::DequeMinimize)->ArgsProduct(kArgList);
+BENCHMARK_TEMPLATE(BM_Minimize, tb::InplaceMinimize)->ArgsProduct(kArgList);
+BENCHMARK_TEMPLATE(BM_Minimize, tb::RingMinimize)->ArgsProduct(kArgList);
+BENCHMARK_TEMPLATE(BM_Minimize, tb::ArgminMinimize)->ArgsProduct(kArgList);
+BENCHMARK_TEMPLATE(BM_Minimize, tb::ArgminEveMinimize)->ArgsProduct(kArgList);
 
 } // namespace
