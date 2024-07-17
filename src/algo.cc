@@ -33,7 +33,7 @@ constexpr auto hash =
 
 std::vector<KMer> NaiveMinimize(MinimizeArgs args) {
   std::vector<KMer> dst;
-  if (args.seq.size() == 0) {
+  if (args.seq.size() < args.window_length + args.kmer_length - 2) {
     return dst;
   }
 
@@ -66,7 +66,7 @@ std::vector<KMer> NaiveMinimize(MinimizeArgs args) {
 
 std::vector<KMer> DequeMinimize(MinimizeArgs args) {
   std::vector<KMer> dst;
-  if (args.seq.size() == 0) {
+  if (args.seq.size() < args.window_length + args.kmer_length - 2) {
     return dst;
   }
 
@@ -109,7 +109,7 @@ std::vector<KMer> DequeMinimize(MinimizeArgs args) {
 
 std::vector<KMer> InplaceMinimize(MinimizeArgs args) {
   std::vector<KMer> dst;
-  if (args.seq.size() == 0) {
+  if (args.seq.size() < args.window_length + args.kmer_length - 2) {
     return dst;
   }
 
@@ -162,9 +162,8 @@ std::vector<KMer> InplaceMinimize(MinimizeArgs args) {
 }
 
 std::vector<KMer> RingMinimize(MinimizeArgs args) {
-
   std::vector<KMer> dst;
-  if (args.seq.size() == 0) {
+  if (args.seq.size() < args.window_length + args.kmer_length - 2) {
     return dst;
   }
 
@@ -202,6 +201,36 @@ std::vector<KMer> RingMinimize(MinimizeArgs args) {
     }
   }
 
+  return dst;
+}
+
+std::vector<KMer> ArgminMinimize(MinimizeArgs args) {
+  std::vector<KMer> dst;
+  if (args.seq.size() < args.window_length + args.kmer_length - 2) {
+    return dst;
+  }
+
+  dst.reserve(args.seq.size());
+  auto const mask = calc_mask(args.kmer_length);
+
+  KMer::value_type value;
+  for (std::size_t i = 0; i < args.seq.size(); ++i) {
+    value = ((value << 2) | args.seq.Code(i)) & mask;
+    if (i >= args.kmer_length - 1) {
+      dst.emplace_back(hash(value, mask), i - (args.kmer_length - 1), 0);
+    }
+  }
+
+  std::int64_t idx = -1;
+  for (std::size_t i = args.window_length; i <= dst.size(); ++i) {
+    if (auto min_iter = std::min_element(dst.begin() + i - args.window_length,
+                                         dst.begin() + i);
+        idx == -1 || dst[idx].position() != min_iter->position()) {
+      dst[++idx] = *min_iter;
+    }
+  }
+
+  dst.resize(idx + 1);
   return dst;
 }
 

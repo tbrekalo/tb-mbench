@@ -49,3 +49,10 @@ TEST_F(MinimizeTest, RingVsNaive) {
 
   EXPECT_EQ(naive_minimizers, ring_minimizers);
 }
+
+TEST_F(MinimizeTest, ArgminVsNaive) {
+  auto naive_minimizers = tb::NaiveMinimize(args_);
+  auto argmin_minimizers = tb::ArgminMinimize(args_);
+
+  EXPECT_EQ(naive_minimizers, argmin_minimizers);
+}

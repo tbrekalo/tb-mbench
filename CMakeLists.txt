@@ -34,7 +34,23 @@ if(NOT benchmark_POPULATED)
                    EXCLUDE_FROM_ALL)
 endif()
 
+set(EVE_BUILD_TEST OFF)
+set(EVE_BUILD_BENCHMARKS OFF)
+set(EVE_BUILD_DOCUMENTATION OFF)
+
+FetchContent_Declare(
+  eve
+  GIT_REPOSITORY https://github.com/jfalcou/eve
+  GIT_TAG v2023.02.15)
+
+FetchContent_GetProperties(eve)
+if(NOT eve_POPULATED)
+  FetchContent_Populate(eve)
+  add_subdirectory(${eve_SOURCE_DIR} ${eve_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
+
 add_library(lib src/algo.cc src/data.cc src/ring.cc)
+target_link_libraries(lib eve::eve)
 target_include_directories(lib PUBLIC include)
 target_compile_options(
   lib

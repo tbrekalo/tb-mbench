@@ -34,3 +34,4 @@ build
 .cache/clangd/index
 venv
 build-debug
+build-profile
