@@ -57,9 +57,16 @@ TEST_F(MinimizeTest, ArgminVsNaive) {
   EXPECT_EQ(naive_minimizers, argmin_minimizers);
 }
 
-TEST_F(MinimizeTest, ArgminEveVsNaive) {
+TEST_F(MinimizeTest, ArgminRecoveryVsNaive) {
   auto naive_minimizers = tb::NaiveMinimize(args_);
-  auto argmin_minimizers = tb::ArgminEveMinimize(args_);
+  auto argmin_minimizers = tb::ArgminRecoveryMinimize(args_);
+
+  EXPECT_EQ(naive_minimizers, argmin_minimizers);
+}
+
+TEST_F(MinimizeTest, ArgminRecoveryEveVsNaive) {
+  auto naive_minimizers = tb::NaiveMinimize(args_);
+  auto argmin_minimizers = tb::ArgminRecoveryEveMinimize(args_);
 
   EXPECT_EQ(naive_minimizers, argmin_minimizers);
 }

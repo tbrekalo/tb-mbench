@@ -32,17 +32,19 @@ cmake --build build
 ### Benchmarking machine
 - 13th Gen Intel(R) Core(TM) i5-13500
 - locked at 2.5Ghz
+- window length = 11
+- kmer length = 21
 
 ### Figures
-| function                |   avg ns per bp |
-|:------------------------|----------------:|
-| tb::NaiveMinimize       |         90.51   |
-| tb::ArgminEveMinimize   |         31.9355 |
-| tb::RingMinimize        |         22.4501 |
-| tb::InplaceMinimize     |         19.7748 |
-| tb::DequeMinimize       |         19.0838 |
-| tb::ArgminUnseqMinimize |         17.7876 |
-| tb::ArgminMinimize      |         17.773  |
+| function                      |   avg ns per bp |
+|:------------------------------|----------------:|
+| tb::NaiveMinimize             |       242.387   |
+| tb::RingMinimize              |        26.4385  |
+| tb::DequeMinimize             |        21.7404  |
+| tb::InplaceMinimize           |        21.2961  |
+| tb::ArgminMinimize            |        15.0231  |
+| tb::ArgminRecoveryEveMinimize |        13.111   |
+| tb::ArgminRecoveryMinimize    |         9.76643 |
 ![](misc/perf.png)
 
 ## Reference

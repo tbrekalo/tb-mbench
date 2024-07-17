@@ -31,6 +31,7 @@ BENCHMARK_TEMPLATE(BM_Minimize, tb::DequeMinimize)->ArgsProduct(kArgList);
 BENCHMARK_TEMPLATE(BM_Minimize, tb::InplaceMinimize)->ArgsProduct(kArgList);
 BENCHMARK_TEMPLATE(BM_Minimize, tb::RingMinimize)->ArgsProduct(kArgList);
 BENCHMARK_TEMPLATE(BM_Minimize, tb::ArgminMinimize)->ArgsProduct(kArgList);
-BENCHMARK_TEMPLATE(BM_Minimize, tb::ArgminEveMinimize)->ArgsProduct(kArgList);
+BENCHMARK_TEMPLATE(BM_Minimize, tb::ArgminRecoveryMinimize)->ArgsProduct(kArgList);
+BENCHMARK_TEMPLATE(BM_Minimize, tb::ArgminRecoveryEveMinimize)->ArgsProduct(kArgList);
 
 } // namespace

@@ -15,6 +15,7 @@ std::vector<KMer> DequeMinimize(MinimizeArgs);
 std::vector<KMer> InplaceMinimize(MinimizeArgs);
 std::vector<KMer> RingMinimize(MinimizeArgs);
 std::vector<KMer> ArgminMinimize(MinimizeArgs);
-std::vector<KMer> ArgminEveMinimize(MinimizeArgs);
+std::vector<KMer> ArgminRecoveryMinimize(MinimizeArgs);
+std::vector<KMer> ArgminRecoveryEveMinimize(MinimizeArgs);
 
 } // namespace tb

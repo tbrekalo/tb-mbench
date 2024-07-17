@@ -226,6 +226,38 @@ std::vector<KMer> ArgminMinimize(MinimizeArgs args) {
     }
   }
 
+  std::int64_t idx = -1;
+  for (std::size_t i = args.window_length; i <= hashes.size(); ++i) {
+    if (auto min_pos = std::min_element(hashes.begin() + i - args.window_length,
+                                        hashes.begin() + i) -
+                       hashes.begin();
+        idx == -1 || dst[idx].position() != min_pos) {
+      dst[++idx] = KMer(hashes[min_pos], min_pos, 0);
+    }
+  }
+
+  dst.resize(idx + 1);
+  return dst;
+}
+
+std::vector<KMer> ArgminRecoveryMinimize(MinimizeArgs args) {
+  std::vector<KMer> dst;
+  if (args.seq.size() < args.window_length + args.kmer_length - 2) {
+    return dst;
+  }
+
+  dst.resize(args.seq.size());
+  auto const mask = calc_mask(args.kmer_length);
+
+  KMer::value_type value;
+  std::vector<KMer::value_type> hashes;
+  for (std::size_t i = 0; i < args.seq.size(); ++i) {
+    value = ((value << 2) | args.seq.Code(i)) & mask;
+    if (i >= args.kmer_length - 1) {
+      hashes.push_back(hash(value, mask));
+    }
+  }
+
   std::size_t min_pos =
       std::min_element(hashes.begin(), hashes.begin() + args.window_length) -
       hashes.begin();
@@ -252,7 +284,7 @@ std::vector<KMer> ArgminMinimize(MinimizeArgs args) {
   return dst;
 }
 
-std::vector<KMer> ArgminEveMinimize(MinimizeArgs args) {
+std::vector<KMer> ArgminRecoveryEveMinimize(MinimizeArgs args) {
   std::vector<KMer> dst;
   if (args.seq.size() < args.window_length + args.kmer_length - 2) {
     return dst;
@@ -270,18 +302,30 @@ std::vector<KMer> ArgminEveMinimize(MinimizeArgs args) {
     }
   }
 
-  std::int64_t idx = -1;
-  for (std::size_t i = args.window_length; i <= hashes.size(); ++i) {
-    auto window =
-        std::span(hashes.begin() + i - args.window_length, hashes.begin() + i);
-    if (auto min_pos = eve::algo::min_element(window) - window.begin() + i -
-                       args.window_length;
-        idx == -1 || dst[idx].position() != min_pos) {
-      dst[++idx] = KMer(hashes[min_pos], min_pos, 0);
+  std::size_t min_pos =
+      std::min_element(hashes.begin(), hashes.begin() + args.window_length) -
+      hashes.begin();
+  dst[0] = KMer(hashes[min_pos], min_pos, 0);
+
+  std::size_t idx = 1;
+  for (std::size_t i = args.window_length + 1; i <= hashes.size(); ++i) {
+    bool cond;
+    if (min_pos >= i - args.window_length) {
+      cond = hashes[i - 1] < hashes[min_pos];
+      min_pos = cond * (i - 1) + (!cond) * min_pos;
+    } else {
+      auto window = std::span(hashes.begin() + i - args.window_length,
+                              hashes.begin() + i);
+      min_pos = eve::algo::min_element(window) - window.begin() + i -
+                args.window_length;
+      cond = dst[idx - 1].position() != min_pos;
+      min_pos = cond * min_pos + (!cond) * dst[idx].position();
     }
+    dst[idx] = KMer(hashes[min_pos], min_pos, 0);
+    idx += cond;
   }
 
-  dst.resize(idx + 1);
+  dst.resize(idx);
   return dst;
 }
 
