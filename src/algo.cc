@@ -226,13 +226,24 @@ std::vector<KMer> ArgminMinimize(MinimizeArgs args) {
     }
   }
 
-  std::size_t idx = 0, min_pos = 0;
-  for (std::size_t i = args.window_length; i <= hashes.size(); ++i) {
-    min_pos = std::min_element(hashes.begin() + i - args.window_length,
-                               hashes.begin() + i) -
-              hashes.begin();
-    auto cond = idx == 0 || dst[idx - 1].position() != min_pos;
-    min_pos = cond * min_pos + (!cond) * dst[idx].position();
+  std::size_t min_pos =
+      std::min_element(hashes.begin(), hashes.begin() + args.window_length) -
+      hashes.begin();
+  dst[0] = KMer(hashes[min_pos], min_pos, 0);
+
+  std::size_t idx = 1;
+  for (std::size_t i = args.window_length + 1; i <= hashes.size(); ++i) {
+    bool cond;
+    if (min_pos >= i - args.window_length) {
+      cond = hashes[i - 1] < hashes[min_pos];
+      min_pos = cond * (i - 1) + (!cond) * min_pos;
+    } else {
+      min_pos = std::min_element(hashes.begin() + i - args.window_length,
+                                 hashes.begin() + i) -
+                hashes.begin();
+      cond = dst[idx - 1].position() != min_pos;
+      min_pos = cond * min_pos + (!cond) * dst[idx].position();
+    }
     dst[idx] = KMer(hashes[min_pos], min_pos, 0);
     idx += cond;
   }
