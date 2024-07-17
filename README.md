@@ -5,11 +5,13 @@ Different implementations for finding robust random minimizers in genomic data.
 
 ### Dependencites
 - C++20 compliant compiler
+  - Support for [C++17 execution policy](https://en.cppreference.com/w/cpp/algorithm/execution_policy_tag_t)
 - CMake
 - git
 
 - [googletest](https://github.com/google/googletest)
 - [benchmark](https://github.com/google/benchmark)
+- [eve](https://github.com/jfalcou/eve)
 
 ### Build
 ```bash
@@ -32,13 +34,15 @@ cmake --build build
 - locked at 2.5Ghz
 
 ### Figures
-| function            |   avg ns per bp |
-|:--------------------|----------------:|
-| tb::NaiveMinimize   |         91.3057 |
-| tb::RingMinimize    |         22.7854 |
-| tb::DequeMinimize   |         20.4661 |
-| tb::InplaceMinimize |         20.147  |
-
+| function                |   avg ns per bp |
+|:------------------------|----------------:|
+| tb::NaiveMinimize       |         90.51   |
+| tb::ArgminEveMinimize   |         31.9355 |
+| tb::RingMinimize        |         22.4501 |
+| tb::InplaceMinimize     |         19.7748 |
+| tb::DequeMinimize       |         19.0838 |
+| tb::ArgminUnseqMinimize |         17.7876 |
+| tb::ArgminMinimize      |         17.773  |
 ![](misc/perf.png)
 
 ## Reference

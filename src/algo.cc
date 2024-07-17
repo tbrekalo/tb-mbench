@@ -4,6 +4,10 @@
 #include <algorithm>
 #include <cassert>
 #include <deque>
+#include <execution>
+#include <span>
+
+#include "eve/module/algo.hpp"
 
 namespace tb {
 
@@ -204,29 +208,92 @@ std::vector<KMer> RingMinimize(MinimizeArgs args) {
   return dst;
 }
 
-std::vector<KMer> ArgminMinimize(MinimizeArgs args) {
+namespace {
+
+enum class ArgMinImpl { Seq, Unseq };
+
+template <ArgMinImpl ImplTag>
+std::vector<KMer> ArgminMinimizeImpl(MinimizeArgs args) {
+  auto min_element = [] consteval {
+    using Iter = std::vector<KMer::value_type>::iterator;
+    if constexpr (ImplTag == ArgMinImpl::Seq) {
+      return [](Iter first, Iter last) {
+        return std::min_element(std::execution::seq, first, last);
+      };
+    } else {
+      return [](Iter first, Iter last) {
+        return std::min_element(std::execution::unseq, first, last);
+      };
+    }
+  }();
+
   std::vector<KMer> dst;
   if (args.seq.size() < args.window_length + args.kmer_length - 2) {
     return dst;
   }
 
-  dst.reserve(args.seq.size());
+  dst.resize(args.seq.size());
   auto const mask = calc_mask(args.kmer_length);
 
   KMer::value_type value;
+  std::vector<KMer::value_type> hashes;
   for (std::size_t i = 0; i < args.seq.size(); ++i) {
     value = ((value << 2) | args.seq.Code(i)) & mask;
     if (i >= args.kmer_length - 1) {
-      dst.emplace_back(hash(value, mask), i - (args.kmer_length - 1), 0);
+      hashes.push_back(hash(value, mask));
     }
   }
 
   std::int64_t idx = -1;
-  for (std::size_t i = args.window_length; i <= dst.size(); ++i) {
-    if (auto min_iter = std::min_element(dst.begin() + i - args.window_length,
-                                         dst.begin() + i);
-        idx == -1 || dst[idx].position() != min_iter->position()) {
-      dst[++idx] = *min_iter;
+  for (std::size_t i = args.window_length; i <= hashes.size(); ++i) {
+    if (auto min_pos = min_element(hashes.begin() + i - args.window_length,
+                                   hashes.begin() + i) -
+                       hashes.begin();
+        idx == -1 || dst[idx].position() != min_pos) {
+      dst[++idx] = KMer(hashes[min_pos], min_pos, 0);
+    }
+  }
+
+  dst.resize(idx + 1);
+  return dst;
+}
+
+} // namespace
+
+std::vector<KMer> ArgminMinimize(MinimizeArgs args) {
+  return ArgminMinimizeImpl<ArgMinImpl::Seq>(args);
+}
+
+std::vector<KMer> ArgminUnseqMinimize(MinimizeArgs args) {
+  return ArgminMinimizeImpl<ArgMinImpl::Unseq>(args);
+}
+
+std::vector<KMer> ArgminEveMinimize(MinimizeArgs args) {
+  std::vector<KMer> dst;
+  if (args.seq.size() < args.window_length + args.kmer_length - 2) {
+    return dst;
+  }
+
+  dst.resize(args.seq.size());
+  auto const mask = calc_mask(args.kmer_length);
+
+  KMer::value_type value;
+  std::vector<KMer::value_type> hashes;
+  for (std::size_t i = 0; i < args.seq.size(); ++i) {
+    value = ((value << 2) | args.seq.Code(i)) & mask;
+    if (i >= args.kmer_length - 1) {
+      hashes.push_back(hash(value, mask));
+    }
+  }
+
+  std::int64_t idx = -1;
+  for (std::size_t i = args.window_length; i <= hashes.size(); ++i) {
+    auto window =
+        std::span(hashes.begin() + i - args.window_length, hashes.begin() + i);
+    if (auto min_pos = eve::algo::min_element(window) - window.begin() + i -
+                       args.window_length;
+        idx == -1 || dst[idx].position() != min_pos) {
+      dst[++idx] = KMer(hashes[min_pos], min_pos, 0);
     }
   }
 

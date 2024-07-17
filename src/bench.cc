@@ -24,5 +24,7 @@ BENCHMARK_TEMPLATE(BM_MinimizeW5K15, tb::DequeMinimize)->Arg(kNBases);
 BENCHMARK_TEMPLATE(BM_MinimizeW5K15, tb::InplaceMinimize)->Arg(kNBases);
 BENCHMARK_TEMPLATE(BM_MinimizeW5K15, tb::RingMinimize)->Arg(kNBases);
 BENCHMARK_TEMPLATE(BM_MinimizeW5K15, tb::ArgminMinimize)->Arg(kNBases);
+BENCHMARK_TEMPLATE(BM_MinimizeW5K15, tb::ArgminUnseqMinimize)->Arg(kNBases);
+BENCHMARK_TEMPLATE(BM_MinimizeW5K15, tb::ArgminEveMinimize)->Arg(kNBases);
 
 } // namespace
