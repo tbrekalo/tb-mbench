@@ -36,17 +36,21 @@ cmake --build build
 - kmer length = 21
 
 ### Figures
-| function                      |   avg ns per bp |
-|:------------------------------|----------------:|
-| tb::NaiveMinimize             |       242.387   |
-| tb::RingMinimize              |        26.4385  |
-| tb::DequeMinimize             |        21.7404  |
-| tb::InplaceMinimize           |        21.2961  |
-| tb::ArgminMinimize            |        15.0231  |
-| tb::ArgminRecoveryEveMinimize |        13.111   |
-| tb::ArgminRecoveryMinimize    |         9.76643 |
+| function                         |   avg ns per bp |
+|:---------------------------------|----------------:|
+| tb::NaiveMinimize                |       242.506   |
+| tb::RingMinimize                 |        26.2161  |
+| tb::DequeMinimize                |        21.8286  |
+| tb::InplaceMinimize              |        21.2374  |
+| tb::NtHashArgMinMinimize         |        16.3198  |
+| tb::ArgMinMinimize               |        15.825   |
+| tb::ArgMinRecoveryEveMinimize    |        12.8743  |
+| tb::NtHashArgMinRecoveryMinimize |        10.3206  |
+| tb::ArgMinRecoveryMinimize       |         9.87923 |
 ![](misc/perf.png)
 
 ## Reference
 - [Winnowing: Local Algorithms for Document Fingerprinting](http://dx.doi.org/10.1145/872769.872770)
 - [Reducing storage requirements for biological sequence comparison](https://doi.org/10.1093/bioinformatics/bth408)
+- [CURIOUS CODING NtHash](https://curiouscoding.nl/posts/nthash/)
+- [Mohamadi, Hamid, Justin Chu, Benjamin P. Vandervalk, and Inanc Birol. 2016. “Nthash: Recursive Nucleotide Hashing.” Bioinformatics 32 (22): 3492–94.](http://dx.doi.org/10.1093/bioinformatics/btw397)

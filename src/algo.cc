@@ -1,13 +1,13 @@
 #include "tb/algo.hpp"
-#include "tb/ring.hpp"
 
 #include <algorithm>
 #include <cassert>
 #include <deque>
-#include <execution>
 #include <span>
 
 #include "eve/module/algo.hpp"
+#include "tb/constants.hpp"
+#include "tb/ring.hpp"
 
 namespace tb {
 
@@ -19,6 +19,7 @@ constexpr auto calc_mask =
   return (1 << (kmer_length * 2)) - 1;
 };
 
+// Thomas Wang integer hash function
 constexpr auto hash =
     [] [[using gnu: const, hot]] (
         std::uint64_t key,
@@ -33,7 +34,26 @@ constexpr auto hash =
   return key;
 };
 
-} // namespace
+constexpr auto srol = [] [[using gnu: always_inline]] (
+                          KMer::value_type x, KMer::value_type n_rotations) {
+  if (n_rotations == 0) {
+    return x;
+  }
+  uint64_t v = (x << n_rotations) | (x >> (64 - n_rotations));
+  uint64_t y = (v ^ (v >> 33)) &
+               (std::numeric_limits<uint64_t>::max() >> (64 - n_rotations));
+  return v ^ (y | (y << 33));
+};
+
+constexpr auto nthash = [] [[using gnu: const, hot]]
+                        (KMer::value_type prev, std::uint8_t base_out,
+                         std::uint8_t base_in, std::uint64_t k) {
+                          return srol(prev, 1) ^
+                                 srol(kNtHashSeeds[base_out], k) ^
+                                 kNtHashSeeds[base_in];
+                        };
+
+}  // namespace
 
 std::vector<KMer> NaiveMinimize(MinimizeArgs args) {
   std::vector<KMer> dst;
@@ -124,12 +144,11 @@ std::vector<KMer> InplaceMinimize(MinimizeArgs args) {
   std::int64_t front_idx = 1;
   std::int64_t back_idx = 1;
 
-  auto push = [&front_idx, &back_idx,
-               &dst](KMer::value_type hash_value,
-                     KMer::position_type position) -> void {
+  auto push = [&front_idx, &back_idx, &dst](
+                  KMer::value_type hash_value,
+                  KMer::position_type position) -> void {
     for (; front_idx < back_idx && dst[back_idx - 1].value() > hash_value;
-         --back_idx)
-      ;
+         --back_idx);
     dst[back_idx++] = KMer(hash_value, position, 0);
   };
 
@@ -208,125 +227,175 @@ std::vector<KMer> RingMinimize(MinimizeArgs args) {
   return dst;
 }
 
-std::vector<KMer> ArgminMinimize(MinimizeArgs args) {
-  std::vector<KMer> dst;
-  if (args.seq.size() < args.window_length + args.kmer_length - 2) {
+namespace {
+
+template <class Hasher, class Sampler>
+class ArgMinMixinBase {
+  [[no_unique_address]] Hasher hasher_;
+  [[no_unique_address]] Sampler sampler_;
+
+ public:
+  std::vector<KMer> operator()(MinimizeArgs args) {
+    if (args.seq.size() < args.window_length + args.kmer_length - 2) {
+      return {};
+    }
+
+    return sampler_(args, hasher_(args));
+  }
+};
+
+struct ThomasWangHasher {
+  std::vector<KMer::value_type> operator()(MinimizeArgs args) const {
+    auto const mask = calc_mask(args.kmer_length);
+
+    KMer::value_type value;
+    std::vector<KMer::value_type> hashes;
+    for (std::size_t i = 0; i < args.seq.size(); ++i) {
+      value = ((value << 2) | args.seq.Code(i)) & mask;
+      if (i >= args.kmer_length - 1) {
+        hashes.push_back(hash(value, mask));
+      }
+    }
+
+    return hashes;
+  }
+};
+
+struct NthHasher {
+  std::vector<KMer::value_type> operator()(MinimizeArgs args) const {
+    if (args.seq.size() < args.window_length + args.kmer_length - 2) {
+      return {};
+    }
+
+    KMer::value_type value =
+        srol(kNtHashSeeds[args.seq.Code(0)], args.kmer_length - 1);
+    for (std::size_t i = 1; i < args.kmer_length; ++i) {
+      value ^= srol(kNtHashSeeds[args.seq.Code(i)], args.kmer_length - (i + 1));
+    }
+
+    std::vector<KMer::value_type> hashes{value};
+    for (std::size_t i = args.kmer_length; i < args.seq.size(); ++i) {
+      value = nthash(value, args.seq.Code(i - (args.kmer_length - 1)),
+                     args.seq.Code(i), args.kmer_length);
+      hashes.push_back(value);
+    }
+
+    return hashes;
+  }
+};
+
+struct ArgMinSampler {
+  std::vector<KMer> operator()(MinimizeArgs args,
+                               std::vector<KMer::value_type> hashes) const {
+    std::vector<KMer> dst(hashes.size());
+    std::int64_t idx = -1;
+    for (std::size_t i = args.window_length; i <= hashes.size(); ++i) {
+      if (auto min_pos =
+              std::min_element(hashes.begin() + i - args.window_length,
+                               hashes.begin() + i) -
+              hashes.begin();
+          idx == -1 || dst[idx].position() != min_pos) {
+        dst[++idx] = KMer(hashes[min_pos], min_pos, 0);
+      }
+    }
+
+    dst.resize(idx + 1);
     return dst;
   }
+};
 
-  dst.resize(args.seq.size());
-  auto const mask = calc_mask(args.kmer_length);
+struct ArgMinRecoverySampler {
+  std::vector<KMer> operator()(MinimizeArgs args,
+                               std::vector<KMer::value_type> hashes) {
+    std::vector<KMer> dst(hashes.size());
+    std::size_t min_pos =
+        std::min_element(hashes.begin(), hashes.begin() + args.window_length) -
+        hashes.begin();
+    dst[0] = KMer(hashes[min_pos], min_pos, 0);
 
-  KMer::value_type value;
-  std::vector<KMer::value_type> hashes;
-  for (std::size_t i = 0; i < args.seq.size(); ++i) {
-    value = ((value << 2) | args.seq.Code(i)) & mask;
-    if (i >= args.kmer_length - 1) {
-      hashes.push_back(hash(value, mask));
+    std::size_t idx = 1;
+    for (std::size_t i = args.window_length + 1; i <= hashes.size(); ++i) {
+      bool cond;
+      if (min_pos >= i - args.window_length) {
+        cond = hashes[i - 1] < hashes[min_pos];
+        min_pos = cond * (i - 1) + (!cond) * min_pos;
+      } else {
+        min_pos = std::min_element(hashes.begin() + i - args.window_length,
+                                   hashes.begin() + i) -
+                  hashes.begin();
+        cond = dst[idx - 1].position() != min_pos;
+        min_pos = cond * min_pos + (!cond) * dst[idx].position();
+      }
+      dst[idx] = KMer(hashes[min_pos], min_pos, 0);
+      idx += cond;
     }
-  }
 
-  std::int64_t idx = -1;
-  for (std::size_t i = args.window_length; i <= hashes.size(); ++i) {
-    if (auto min_pos = std::min_element(hashes.begin() + i - args.window_length,
-                                        hashes.begin() + i) -
-                       hashes.begin();
-        idx == -1 || dst[idx].position() != min_pos) {
-      dst[++idx] = KMer(hashes[min_pos], min_pos, 0);
-    }
-  }
-
-  dst.resize(idx + 1);
-  return dst;
-}
-
-std::vector<KMer> ArgminRecoveryMinimize(MinimizeArgs args) {
-  std::vector<KMer> dst;
-  if (args.seq.size() < args.window_length + args.kmer_length - 2) {
+    dst.resize(idx);
     return dst;
   }
+};
 
-  dst.resize(args.seq.size());
-  auto const mask = calc_mask(args.kmer_length);
+struct ArgMinEveRecoverySampler {
+  std::vector<KMer> operator()(MinimizeArgs args,
+                               std::vector<KMer::value_type> hashes) {
+    std::vector<KMer> dst(hashes.size());
+    std::size_t min_pos =
+        std::min_element(hashes.begin(), hashes.begin() + args.window_length) -
+        hashes.begin();
+    dst[0] = KMer(hashes[min_pos], min_pos, 0);
 
-  KMer::value_type value;
-  std::vector<KMer::value_type> hashes;
-  for (std::size_t i = 0; i < args.seq.size(); ++i) {
-    value = ((value << 2) | args.seq.Code(i)) & mask;
-    if (i >= args.kmer_length - 1) {
-      hashes.push_back(hash(value, mask));
+    std::size_t idx = 1;
+    for (std::size_t i = args.window_length + 1; i <= hashes.size(); ++i) {
+      bool cond;
+      if (min_pos >= i - args.window_length) {
+        cond = hashes[i - 1] < hashes[min_pos];
+        min_pos = cond * (i - 1) + (!cond) * min_pos;
+      } else {
+        auto window = std::span(hashes.begin() + i - args.window_length,
+                                hashes.begin() + i);
+        min_pos = eve::algo::min_element(window) - window.begin() + i -
+                  args.window_length;
+        cond = dst[idx - 1].position() != min_pos;
+        min_pos = cond * min_pos + (!cond) * dst[idx].position();
+      }
+      dst[idx] = KMer(hashes[min_pos], min_pos, 0);
+      idx += cond;
     }
-  }
 
-  std::size_t min_pos =
-      std::min_element(hashes.begin(), hashes.begin() + args.window_length) -
-      hashes.begin();
-  dst[0] = KMer(hashes[min_pos], min_pos, 0);
-
-  std::size_t idx = 1;
-  for (std::size_t i = args.window_length + 1; i <= hashes.size(); ++i) {
-    bool cond;
-    if (min_pos >= i - args.window_length) {
-      cond = hashes[i - 1] < hashes[min_pos];
-      min_pos = cond * (i - 1) + (!cond) * min_pos;
-    } else {
-      min_pos = std::min_element(hashes.begin() + i - args.window_length,
-                                 hashes.begin() + i) -
-                hashes.begin();
-      cond = dst[idx - 1].position() != min_pos;
-      min_pos = cond * min_pos + (!cond) * dst[idx].position();
-    }
-    dst[idx] = KMer(hashes[min_pos], min_pos, 0);
-    idx += cond;
-  }
-
-  dst.resize(idx);
-  return dst;
-}
-
-std::vector<KMer> ArgminRecoveryEveMinimize(MinimizeArgs args) {
-  std::vector<KMer> dst;
-  if (args.seq.size() < args.window_length + args.kmer_length - 2) {
+    dst.resize(idx);
     return dst;
   }
+};
 
-  dst.resize(args.seq.size());
-  auto const mask = calc_mask(args.kmer_length);
+using ArgMinMixin = ArgMinMixinBase<ThomasWangHasher, ArgMinSampler>;
+using NtHashArgMinMixin = ArgMinMixinBase<NthHasher, ArgMinSampler>;
+using ArgMinRecoveryMixin =
+    ArgMinMixinBase<ThomasWangHasher, ArgMinRecoverySampler>;
+using ArgMinEverRecoveryMixin =
+    ArgMinMixinBase<ThomasWangHasher, ArgMinEveRecoverySampler>;
+using NtHashArgMinRecoveryMixin =
+    ArgMinMixinBase<NthHasher, ArgMinRecoverySampler>;
 
-  KMer::value_type value;
-  std::vector<KMer::value_type> hashes;
-  for (std::size_t i = 0; i < args.seq.size(); ++i) {
-    value = ((value << 2) | args.seq.Code(i)) & mask;
-    if (i >= args.kmer_length - 1) {
-      hashes.push_back(hash(value, mask));
-    }
-  }
+}  // namespace
 
-  std::size_t min_pos =
-      std::min_element(hashes.begin(), hashes.begin() + args.window_length) -
-      hashes.begin();
-  dst[0] = KMer(hashes[min_pos], min_pos, 0);
-
-  std::size_t idx = 1;
-  for (std::size_t i = args.window_length + 1; i <= hashes.size(); ++i) {
-    bool cond;
-    if (min_pos >= i - args.window_length) {
-      cond = hashes[i - 1] < hashes[min_pos];
-      min_pos = cond * (i - 1) + (!cond) * min_pos;
-    } else {
-      auto window = std::span(hashes.begin() + i - args.window_length,
-                              hashes.begin() + i);
-      min_pos = eve::algo::min_element(window) - window.begin() + i -
-                args.window_length;
-      cond = dst[idx - 1].position() != min_pos;
-      min_pos = cond * min_pos + (!cond) * dst[idx].position();
-    }
-    dst[idx] = KMer(hashes[min_pos], min_pos, 0);
-    idx += cond;
-  }
-
-  dst.resize(idx);
-  return dst;
+std::vector<KMer> ArgMinMinimize(MinimizeArgs args) {
+  return ArgMinMixin{}(args);
 }
 
-} // namespace tb
+std::vector<KMer> NtHashArgMinMinimize(MinimizeArgs args) {
+  return NtHashArgMinMixin{}(args);
+}
+
+std::vector<KMer> ArgMinRecoveryMinimize(MinimizeArgs args) {
+  return ArgMinRecoveryMixin{}(args);
+}
+
+std::vector<KMer> ArgMinRecoveryEveMinimize(MinimizeArgs args) {
+  return ArgMinEverRecoveryMixin{}(args);
+}
+
+std::vector<KMer> NtHashArgMinRecoveryMinimize(MinimizeArgs args) {
+  return NtHashArgMinRecoveryMixin{}(args);
+}
+
+}  // namespace tb

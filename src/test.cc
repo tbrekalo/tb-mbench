@@ -1,7 +1,6 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 
 #include "gtest/gtest.h"
-
 #include "tb/algo.hpp"
 
 namespace {
@@ -9,19 +8,20 @@ namespace {
 constexpr int kSeed = 42;
 
 class MinimizeTest : public testing::Test {
-protected:
+ protected:
   MinimizeTest()
-      : seq_(1uz << 14uz, kSeed), args_(tb::MinimizeArgs{
-                                      .seq = seq_,
-                                      .window_length = 5,
-                                      .kmer_length = 15,
-                                  }) {}
+      : seq_(1uz << 14uz, kSeed),
+        args_(tb::MinimizeArgs{
+            .seq = seq_,
+            .window_length = 5,
+            .kmer_length = 15,
+        }) {}
 
   tb::MockSequence seq_;
   tb::MinimizeArgs args_;
 };
 
-} // namespace
+}  // namespace
 
 TEST_F(MinimizeTest, NaiveDensity) {
   auto minimizers = tb::NaiveMinimize(args_);
@@ -50,23 +50,30 @@ TEST_F(MinimizeTest, RingVsNaive) {
   EXPECT_EQ(naive_minimizers, ring_minimizers);
 }
 
-TEST_F(MinimizeTest, ArgminVsNaive) {
+TEST_F(MinimizeTest, ArgMinVsNaive) {
   auto naive_minimizers = tb::NaiveMinimize(args_);
-  auto argmin_minimizers = tb::ArgminMinimize(args_);
+  auto argmin_minimizers = tb::ArgMinMinimize(args_);
 
   EXPECT_EQ(naive_minimizers, argmin_minimizers);
 }
 
-TEST_F(MinimizeTest, ArgminRecoveryVsNaive) {
+TEST_F(MinimizeTest, ArgMinRecoveryVsNaive) {
   auto naive_minimizers = tb::NaiveMinimize(args_);
-  auto argmin_minimizers = tb::ArgminRecoveryMinimize(args_);
+  auto argmin_minimizers = tb::ArgMinRecoveryMinimize(args_);
 
   EXPECT_EQ(naive_minimizers, argmin_minimizers);
 }
 
-TEST_F(MinimizeTest, ArgminRecoveryEveVsNaive) {
+TEST_F(MinimizeTest, ArgMinRecoveryEveVsNaive) {
   auto naive_minimizers = tb::NaiveMinimize(args_);
-  auto argmin_minimizers = tb::ArgminRecoveryEveMinimize(args_);
+  auto argmin_minimizers = tb::ArgMinRecoveryEveMinimize(args_);
 
   EXPECT_EQ(naive_minimizers, argmin_minimizers);
+}
+
+TEST_F(MinimizeTest, NtHashArgMinRecoveryVsNtHashArgMin) {
+  auto argmin_minimizers = tb::NtHashArgMinMinimize(args_);
+  auto recovery_minimizers = tb::NtHashArgMinRecoveryMinimize(args_);
+
+  EXPECT_EQ(argmin_minimizers, recovery_minimizers);
 }
