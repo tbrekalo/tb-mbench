@@ -49,7 +49,7 @@ if(NOT eve_POPULATED)
   add_subdirectory(${eve_SOURCE_DIR} ${eve_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
 
-add_library(lib src/algo.cc src/data.cc src/ring.cc)
+add_library(lib src/algo.cc src/data.cc src/nthash.cc src/ring.cc)
 target_link_libraries(lib eve::eve)
 target_include_directories(lib PUBLIC include)
 target_compile_options(
