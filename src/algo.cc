@@ -34,22 +34,40 @@ constexpr auto hash =
   return key;
 };
 
-constexpr auto srol = [] [[using gnu: always_inline]] (
-                          KMer::value_type x, KMer::value_type n_rotations) {
-  if (n_rotations == 0) {
-    return x;
+constexpr auto srol = []<class... Args> [[using gnu: always_inline, const]] (
+                          Args&&... args) -> KMer::value_type {
+  auto single_impl = [](std::uint64_t x) noexcept {
+    /* clang-format off */
+    uint64_t m = ((x & 0x8000000000000000ULL) >> 30) |
+                 ((x & 0x100000000ULL) >> 32);
+    /* clang-format on */
+    return ((x << 1) & 0xFFFFFFFDFFFFFFFFULL) | m;
+  };
+
+  auto multi_impl = [] [[using gnu: always_inline]] (
+                        KMer::value_type x, KMer::value_type n_rotations) {
+    if (n_rotations == 0) {
+      return x;
+    }
+    uint64_t v = (x << n_rotations) | (x >> (64 - n_rotations));
+    uint64_t y = (v ^ (v >> 33)) &
+                 (std::numeric_limits<uint64_t>::max() >> (64 - n_rotations));
+    return v ^ (y | (y << 33));
+  };
+
+  if constexpr (requires(Args... args) { single_impl(args...); }) {
+    return single_impl(std::forward<Args>(args)...);
+  } else if constexpr (requires(Args... args) { multi_impl(args...); }) {
+    return multi_impl(std::forward<Args>(args)...);
+  } else {
+    static_assert(false, "Overload not supported");
   }
-  uint64_t v = (x << n_rotations) | (x >> (64 - n_rotations));
-  uint64_t y = (v ^ (v >> 33)) &
-               (std::numeric_limits<uint64_t>::max() >> (64 - n_rotations));
-  return v ^ (y | (y << 33));
 };
 
 constexpr auto nthash = [] [[using gnu: const, hot]]
                         (KMer::value_type prev, std::uint8_t base_out,
                          std::uint8_t base_in, std::uint64_t k) {
-                          return srol(prev, 1) ^
-                                 srol(kNtHashSeeds[base_out], k) ^
+                          return srol(prev) ^ srol(kNtHashSeeds[base_out], k) ^
                                  kNtHashSeeds[base_in];
                         };
 
