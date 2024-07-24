@@ -55,7 +55,7 @@ inline constexpr auto srol =
 
 namespace detail {
 
-inline constexpr auto kPrecomputed = [] {
+inline constexpr auto kPrecomputed = [] consteval {
   std::array<std::array<std::uint64_t, 4>, 32> dst;
   for (std::size_t i = 0; i < 32; ++i) {
     for (std::size_t j = 0; j < kNtHashSeeds.size(); ++j) {
@@ -81,7 +81,7 @@ inline constexpr auto nthash =
         }
       };
 
-      return srol(prev, 1) ^ srol_out(base_out, k) ^ kNtHashSeeds[base_in];
+      return srol(prev) ^ srol_out(base_out, k) ^ kNtHashSeeds[base_in];
     };
 
 }  // namespace tb

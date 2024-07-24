@@ -38,17 +38,17 @@ cmake --build build
 ### Figures
 | function                                    |   avg ns per bp |
 |:--------------------------------------------|----------------:|
-| tb::NaiveMinimize                           |       241.547   |
-| tb::NtHashArgMinMinimize                    |        26.454   |
-| tb::RingMinimize                            |        26.2809  |
-| tb::DequeMinimize                           |        23.495   |
-| tb::NtHashPrecomputedArgMinMinimize         |        22.7503  |
-| tb::InplaceMinimize                         |        21.313   |
-| tb::NtHashArgMinRecoveryMinimize            |        20.6429  |
-| tb::NtHashPrecomputedArgMinRecoveryMinimize |        16.5655  |
-| tb::ArgMinMinimize                          |        15.9429  |
-| tb::ArgMinRecoveryEveMinimize               |        12.8927  |
-| tb::ArgMinRecoveryMinimize                  |         9.81566 |
+| tb::NaiveMinimize                           |       241.507   |
+| tb::RingMinimize                            |        26.3142  |
+| tb::DequeMinimize                           |        23.426   |
+| tb::InplaceMinimize                         |        21.2771  |
+| tb::NtHashArgMinMinimize                    |        16.6965  |
+| tb::ArgMinMinimize                          |        16.0488  |
+| tb::NtHashPrecomputedArgMinMinimize         |        15.6862  |
+| tb::ArgMinRecoveryEveMinimize               |        12.9594  |
+| tb::NtHashArgMinRecoveryMinimize            |        10.5036  |
+| tb::ArgMinRecoveryMinimize                  |         9.93717 |
+| tb::NtHashPrecomputedArgMinRecoveryMinimize |         9.50983 |
 ![](misc/perf.png)
 
 ## Reference
