@@ -230,11 +230,12 @@ struct ThomasWangHasher {
     auto const mask = calc_mask(args.kmer_length);
 
     KMer::value_type value;
-    std::vector<KMer::value_type> hashes;
+    std::vector<KMer::value_type> hashes(args.seq.size() - args.kmer_length +
+                                         1);
     for (std::size_t i = 0; i < args.seq.size(); ++i) {
       value = ((value << 2) | args.seq.Code(i)) & mask;
       if (i >= args.kmer_length - 1) {
-        hashes.push_back(hash(value, mask));
+        hashes[i - (args.kmer_length - 1)] = hash(value, mask);
       }
     }
 
@@ -255,11 +256,14 @@ struct NthHasher {
       value ^= srol(kNtHashSeeds[args.seq.Code(i)], args.kmer_length - (i + 1));
     }
 
-    std::vector<KMer::value_type> hashes{value};
+    std::vector<KMer::value_type> hashes(args.seq.size() - args.kmer_length +
+                                         1);
+    hashes[0] = value;
+
     for (std::size_t i = args.kmer_length; i < args.seq.size(); ++i) {
       value = nthash<Precomputed>(value, args.seq.Code(i - args.kmer_length),
                                   args.seq.Code(i), args.kmer_length);
-      hashes.push_back(value);
+      hashes[i - args.kmer_length] = value;
     }
 
     return hashes;

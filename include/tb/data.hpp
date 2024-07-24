@@ -59,7 +59,7 @@ public:
   using position_type = std::int32_t;
 
   KMer() = default;
-  KMer(value_type value, position_type pos, bool strand)
+  [[gnu::always_inline]] KMer(value_type value, position_type pos, bool strand)
       : value_(value),
         pos_strand_((static_cast<std::uint64_t>(strand) << 31) | pos) {}
 
