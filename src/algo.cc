@@ -242,6 +242,7 @@ struct ThomasWangHasher {
   }
 };
 
+template <bool Precomputed = true>
 struct NthHasher {
   std::vector<KMer::value_type> operator()(MinimizeArgs args) const {
     if (args.seq.size() < args.window_length + args.kmer_length - 2) {
@@ -256,8 +257,8 @@ struct NthHasher {
 
     std::vector<KMer::value_type> hashes{value};
     for (std::size_t i = args.kmer_length; i < args.seq.size(); ++i) {
-      value = nthash(value, args.seq.Code(i - (args.kmer_length - 1)),
-                     args.seq.Code(i), args.kmer_length);
+      value = nthash<Precomputed>(value, args.seq.Code(i - args.kmer_length),
+                                  args.seq.Code(i), args.kmer_length);
       hashes.push_back(value);
     }
 
@@ -349,13 +350,17 @@ struct ArgMinEveRecoverySampler {
 };
 
 using ArgMinMixin = ArgMinMixinBase<ThomasWangHasher, ArgMinSampler>;
-using NtHashArgMinMixin = ArgMinMixinBase<NthHasher, ArgMinSampler>;
+using NtHashArgMinMixin = ArgMinMixinBase<NthHasher<false>, ArgMinSampler>;
+using NtHashPrecomputedArgMinMixin =
+    ArgMinMixinBase<NthHasher<true>, ArgMinSampler>;
 using ArgMinRecoveryMixin =
     ArgMinMixinBase<ThomasWangHasher, ArgMinRecoverySampler>;
 using ArgMinEverRecoveryMixin =
     ArgMinMixinBase<ThomasWangHasher, ArgMinEveRecoverySampler>;
 using NtHashArgMinRecoveryMixin =
-    ArgMinMixinBase<NthHasher, ArgMinRecoverySampler>;
+    ArgMinMixinBase<NthHasher<false>, ArgMinRecoverySampler>;
+using NtHashPrecomputedArgMinRecoveryMixin =
+    ArgMinMixinBase<NthHasher<true>, ArgMinRecoverySampler>;
 
 }  // namespace
 
@@ -365,6 +370,10 @@ std::vector<KMer> ArgMinMinimize(MinimizeArgs args) {
 
 std::vector<KMer> NtHashArgMinMinimize(MinimizeArgs args) {
   return NtHashArgMinMixin{}(args);
+}
+
+std::vector<KMer> NtHashPrecomputedArgMinMinimize(MinimizeArgs args) {
+  return NtHashPrecomputedArgMinMixin{}(args);
 }
 
 std::vector<KMer> ArgMinRecoveryMinimize(MinimizeArgs args) {
@@ -377,6 +386,10 @@ std::vector<KMer> ArgMinRecoveryEveMinimize(MinimizeArgs args) {
 
 std::vector<KMer> NtHashArgMinRecoveryMinimize(MinimizeArgs args) {
   return NtHashArgMinRecoveryMixin{}(args);
+}
+
+std::vector<KMer> NtHashPrecomputedArgMinRecoveryMinimize(MinimizeArgs args) {
+  return NtHashPrecomputedArgMinRecoveryMixin{}(args);
 }
 
 }  // namespace tb

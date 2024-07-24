@@ -56,7 +56,7 @@ target_compile_options(
   lib
   PUBLIC $<$<CONFIG:Debug,RelWithDebInfo>:-fsanitize=address
          -fsanitize=undefined -fno-omit-frame-pointer>
-         $<$<CONFIG:Release>:-march=native>)
+         $<$<CONFIG:Release>:-march=native> $<$<CONFIG:Release>:-ffast-math>)
 target_link_options(
   lib PUBLIC $<$<CONFIG:Debug,RelWithDebInfo>:-fsanitize=address
   -fsanitize=undefined>)

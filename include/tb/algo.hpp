@@ -16,8 +16,10 @@ std::vector<KMer> InplaceMinimize(MinimizeArgs);
 std::vector<KMer> RingMinimize(MinimizeArgs);
 std::vector<KMer> ArgMinMinimize(MinimizeArgs);
 std::vector<KMer> NtHashArgMinMinimize(MinimizeArgs);
+std::vector<KMer> NtHashPrecomputedArgMinMinimize(MinimizeArgs);
 std::vector<KMer> ArgMinRecoveryMinimize(MinimizeArgs);
 std::vector<KMer> ArgMinRecoveryEveMinimize(MinimizeArgs);
 std::vector<KMer> NtHashArgMinRecoveryMinimize(MinimizeArgs);
+std::vector<KMer> NtHashPrecomputedArgMinRecoveryMinimize(MinimizeArgs);
 
 }  // namespace tb

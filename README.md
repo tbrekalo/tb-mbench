@@ -36,17 +36,19 @@ cmake --build build
 - kmer length = 21
 
 ### Figures
-| function                         |   avg ns per bp |
-|:---------------------------------|----------------:|
-| tb::NaiveMinimize                |       242.506   |
-| tb::RingMinimize                 |        26.2161  |
-| tb::DequeMinimize                |        21.8286  |
-| tb::InplaceMinimize              |        21.2374  |
-| tb::NtHashArgMinMinimize         |        16.3198  |
-| tb::ArgMinMinimize               |        15.825   |
-| tb::ArgMinRecoveryEveMinimize    |        12.8743  |
-| tb::NtHashArgMinRecoveryMinimize |        10.3206  |
-| tb::ArgMinRecoveryMinimize       |         9.87923 |
+| function                                    |   avg ns per bp |
+|:--------------------------------------------|----------------:|
+| tb::NaiveMinimize                           |       241.547   |
+| tb::NtHashArgMinMinimize                    |        26.454   |
+| tb::RingMinimize                            |        26.2809  |
+| tb::DequeMinimize                           |        23.495   |
+| tb::NtHashPrecomputedArgMinMinimize         |        22.7503  |
+| tb::InplaceMinimize                         |        21.313   |
+| tb::NtHashArgMinRecoveryMinimize            |        20.6429  |
+| tb::NtHashPrecomputedArgMinRecoveryMinimize |        16.5655  |
+| tb::ArgMinMinimize                          |        15.9429  |
+| tb::ArgMinRecoveryEveMinimize               |        12.8927  |
+| tb::ArgMinRecoveryMinimize                  |         9.81566 |
 ![](misc/perf.png)
 
 ## Reference

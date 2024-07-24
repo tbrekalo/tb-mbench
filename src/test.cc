@@ -71,9 +71,23 @@ TEST_F(MinimizeTest, ArgMinRecoveryEveVsNaive) {
   EXPECT_EQ(naive_minimizers, argmin_minimizers);
 }
 
+TEST_F(MinimizeTest, NtHashPrecomputedArgMinVsNtHashArgMin) {
+  auto minimizers = tb::NtHashArgMinMinimize(args_);
+  auto precomputed_minimizers = tb::NtHashPrecomputedArgMinMinimize(args_);
+
+  EXPECT_EQ(minimizers, precomputed_minimizers);
+}
+
 TEST_F(MinimizeTest, NtHashArgMinRecoveryVsNtHashArgMin) {
   auto argmin_minimizers = tb::NtHashArgMinMinimize(args_);
   auto recovery_minimizers = tb::NtHashArgMinRecoveryMinimize(args_);
+
+  EXPECT_EQ(argmin_minimizers, recovery_minimizers);
+}
+
+TEST_F(MinimizeTest, NtHashPrecomputedArgMinRecoveryVsNtHashArgMin) {
+  auto argmin_minimizers = tb::NtHashArgMinMinimize(args_);
+  auto recovery_minimizers = tb::NtHashPrecomputedArgMinRecoveryMinimize(args_);
 
   EXPECT_EQ(argmin_minimizers, recovery_minimizers);
 }

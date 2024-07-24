@@ -34,11 +34,15 @@ BENCHMARK_TEMPLATE(BM_Minimize, tb::RingMinimize)->ArgsProduct(kArgList);
 BENCHMARK_TEMPLATE(BM_Minimize, tb::ArgMinMinimize)->ArgsProduct(kArgList);
 BENCHMARK_TEMPLATE(BM_Minimize, tb::NtHashArgMinMinimize)
     ->ArgsProduct(kArgList);
+BENCHMARK_TEMPLATE(BM_Minimize, tb::NtHashPrecomputedArgMinMinimize)
+    ->ArgsProduct(kArgList);
 BENCHMARK_TEMPLATE(BM_Minimize, tb::ArgMinRecoveryMinimize)
     ->ArgsProduct(kArgList);
 BENCHMARK_TEMPLATE(BM_Minimize, tb::ArgMinRecoveryEveMinimize)
     ->ArgsProduct(kArgList);
 BENCHMARK_TEMPLATE(BM_Minimize, tb::NtHashArgMinRecoveryMinimize)
+    ->ArgsProduct(kArgList);
+BENCHMARK_TEMPLATE(BM_Minimize, tb::NtHashPrecomputedArgMinRecoveryMinimize)
     ->ArgsProduct(kArgList);
 
 }  // namespace
