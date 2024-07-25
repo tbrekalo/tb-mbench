@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <cassert>
+#include <concepts>
 #include <deque>
+#include <iterator>
 #include <span>
 
 #include "eve/module/algo.hpp"
@@ -270,16 +272,39 @@ struct NthHasher {
   }
 };
 
+template <class T>
+concept ALessThan = requires(T lhs, T rhs) {
+  { lhs < rhs } -> std::same_as<bool>;
+};
+
+constexpr auto StdMinElement = []<std::forward_iterator FwdIt>(
+                                   FwdIt first, FwdIt last) -> FwdIt
+  requires(ALessThan<typename std::iterator_traits<FwdIt>::value_type>)
+{ return std::min_element(first, last); };
+
+constexpr auto TernaryMinElement =
+    []<std::forward_iterator FwdIt> [[gnu::always_inline]] (FwdIt first,
+                                                            FwdIt last) -> FwdIt
+  requires(ALessThan<typename std::iterator_traits<FwdIt>::value_type>)
+{
+  auto ret = first;
+  for (; first < last; ++first) {
+    ret = *ret < *first ? ret : first;
+  }
+
+  return ret;
+};
+
+template <auto min_element>
 struct ArgMinSampler {
   std::vector<KMer> operator()(MinimizeArgs args,
                                std::vector<KMer::value_type> hashes) const {
     std::vector<KMer> dst(hashes.size());
     std::int64_t idx = -1;
     for (std::size_t i = args.window_length; i <= hashes.size(); ++i) {
-      if (auto min_pos =
-              std::min_element(hashes.begin() + i - args.window_length,
-                               hashes.begin() + i) -
-              hashes.begin();
+      if (auto min_pos = min_element(hashes.begin() + i - args.window_length,
+                                     hashes.begin() + i) -
+                         hashes.begin();
           idx == -1 || dst[idx].position() != min_pos) {
         dst[++idx] = KMer(hashes[min_pos], min_pos, 0);
       }
@@ -353,11 +378,15 @@ struct ArgMinEveRecoverySampler {
   }
 };
 
-using ArgMinMixin = ArgMinMixinBase<ThomasWangHasher, ArgMinSampler>;
+using StdArgMinSampler = ArgMinSampler<StdMinElement>;
+using TernaryArgMinSampler = ArgMinSampler<TernaryMinElement>;
+
+using ArgMinMixin = ArgMinMixinBase<ThomasWangHasher, StdArgMinSampler>;
 using NtHashArgMinMixin =
-    ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kRuntime>>, ArgMinSampler>;
+    ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kRuntime>>, StdArgMinSampler>;
 using NtHashPrecomputedArgMinMixin =
-    ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kPrecomputed>>, ArgMinSampler>;
+    ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kPrecomputed>>,
+                    StdArgMinSampler>;
 using ArgMinRecoveryMixin =
     ArgMinMixinBase<ThomasWangHasher, ArgMinRecoverySampler>;
 using ArgMinEverRecoveryMixin =
