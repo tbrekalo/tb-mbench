@@ -4,7 +4,6 @@
 #include <cassert>
 #include <concepts>
 #include <deque>
-#include <iterator>
 #include <span>
 
 #include "eve/module/algo.hpp"
@@ -273,38 +272,44 @@ struct NthHasher {
 };
 
 template <class T>
-concept ALessThan = requires(T lhs, T rhs) {
+concept AMinElement = requires(T lhs, T rhs) {
   { lhs < rhs } -> std::same_as<bool>;
+  std::copyable<T>;
 };
 
-constexpr auto StdMinElement = []<std::forward_iterator FwdIt>(
-                                   FwdIt first, FwdIt last) -> FwdIt
-  requires(ALessThan<typename std::iterator_traits<FwdIt>::value_type>)
-{ return std::min_element(first, last); };
+constexpr auto StdMinElement =
+    []<AMinElement T>(std::span<T> span) -> std::span<T>::iterator {
+  return std::ranges::min_element(span);
+};
+
+constexpr auto EveMinElement =
+    []<AMinElement T>(std::span<T> span) -> std::span<T>::iterator {
+  return eve::algo::min_element(span);
+};
 
 constexpr auto TernaryMinElement =
-    []<std::forward_iterator FwdIt> [[gnu::always_inline]] (FwdIt first,
-                                                            FwdIt last) -> FwdIt
-  requires(ALessThan<typename std::iterator_traits<FwdIt>::value_type>)
-{
-  auto ret = first;
-  for (; first < last; ++first) {
-    ret = *ret < *first ? ret : first;
+    []<AMinElement T> [[gnu::always_inline]] (
+        std::span<T> span) -> std::span<T>::iterator {
+  auto ret = span.begin();
+  for (auto it = ret + 1; it < span.end(); ++it) {
+    ret = *ret < *it ? ret : it;
   }
 
   return ret;
 };
 
-template <auto min_element>
+template <class MinPolicy>
 struct ArgMinSampler {
   std::vector<KMer> operator()(MinimizeArgs args,
                                std::vector<KMer::value_type> hashes) const {
+    auto min_element = MinPolicy{};
     std::vector<KMer> dst(hashes.size());
     std::int64_t idx = -1;
     for (std::size_t i = args.window_length; i <= hashes.size(); ++i) {
-      if (auto min_pos = min_element(hashes.begin() + i - args.window_length,
-                                     hashes.begin() + i) -
-                         hashes.begin();
+      auto window = std::span(hashes.begin() + i - args.window_length,
+                              hashes.begin() + i);
+      if (auto min_pos =
+              min_element(window) - window.begin() + i - args.window_length;
           idx == -1 || dst[idx].position() != min_pos) {
         dst[++idx] = KMer(hashes[min_pos], min_pos, 0);
       }
@@ -315,40 +320,11 @@ struct ArgMinSampler {
   }
 };
 
+template <class MinPolicy>
 struct ArgMinRecoverySampler {
   std::vector<KMer> operator()(MinimizeArgs args,
                                std::vector<KMer::value_type> hashes) {
-    std::vector<KMer> dst(hashes.size());
-    std::size_t min_pos =
-        std::min_element(hashes.begin(), hashes.begin() + args.window_length) -
-        hashes.begin();
-    dst[0] = KMer(hashes[min_pos], min_pos, 0);
-
-    std::size_t idx = 1;
-    for (std::size_t i = args.window_length + 1; i <= hashes.size(); ++i) {
-      bool cond;
-      if (min_pos >= i - args.window_length) {
-        cond = hashes[i - 1] < hashes[min_pos];
-        min_pos = cond * (i - 1) + (!cond) * min_pos;
-      } else {
-        min_pos = std::min_element(hashes.begin() + i - args.window_length,
-                                   hashes.begin() + i) -
-                  hashes.begin();
-        cond = dst[idx - 1].position() != min_pos;
-        min_pos = cond * min_pos + (!cond) * dst[idx].position();
-      }
-      dst[idx] = KMer(hashes[min_pos], min_pos, 0);
-      idx += cond;
-    }
-
-    dst.resize(idx);
-    return dst;
-  }
-};
-
-struct ArgMinEveRecoverySampler {
-  std::vector<KMer> operator()(MinimizeArgs args,
-                               std::vector<KMer::value_type> hashes) {
+    auto min_element = MinPolicy{};
     std::vector<KMer> dst(hashes.size());
     std::size_t min_pos =
         std::min_element(hashes.begin(), hashes.begin() + args.window_length) -
@@ -364,8 +340,7 @@ struct ArgMinEveRecoverySampler {
       } else {
         auto window = std::span(hashes.begin() + i - args.window_length,
                                 hashes.begin() + i);
-        min_pos = eve::algo::min_element(window) - window.begin() + i -
-                  args.window_length;
+        min_pos = min_element(window) - window.begin() + i - args.window_length;
         cond = dst[idx - 1].position() != min_pos;
         min_pos = cond * min_pos + (!cond) * dst[idx].position();
       }
@@ -378,25 +353,31 @@ struct ArgMinEveRecoverySampler {
   }
 };
 
-using StdArgMinSampler = ArgMinSampler<StdMinElement>;
-using TernaryArgMinSampler = ArgMinSampler<TernaryMinElement>;
+using StdArgMinSampler = ArgMinSampler<decltype(StdMinElement)>;
+using TernaryArgMinSampler = ArgMinSampler<decltype(TernaryMinElement)>;
 
-using ArgMinMixin = ArgMinMixinBase<ThomasWangHasher, StdArgMinSampler>;
+using StdArgMinRecoverySampler = ArgMinRecoverySampler<decltype(StdMinElement)>;
+using EveArgMinRecoverySampler = ArgMinRecoverySampler<decltype(EveMinElement)>;
+using TernaryArgMinRecoverySampler =
+    ArgMinRecoverySampler<decltype(TernaryMinElement)>;
+
+using ArgMinMixin = ArgMinMixinBase<ThomasWangHasher, TernaryArgMinSampler>;
 using NtHashArgMinMixin =
-    ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kRuntime>>, StdArgMinSampler>;
+    ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kRuntime>>,
+                    TernaryArgMinSampler>;
 using NtHashPrecomputedArgMinMixin =
     ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kPrecomputed>>,
-                    StdArgMinSampler>;
+                    TernaryArgMinSampler>;
 using ArgMinRecoveryMixin =
-    ArgMinMixinBase<ThomasWangHasher, ArgMinRecoverySampler>;
+    ArgMinMixinBase<ThomasWangHasher, StdArgMinRecoverySampler>;
 using ArgMinEverRecoveryMixin =
-    ArgMinMixinBase<ThomasWangHasher, ArgMinEveRecoverySampler>;
+    ArgMinMixinBase<ThomasWangHasher, EveArgMinRecoverySampler>;
 using NtHashArgMinRecoveryMixin =
-    ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kPrecomputed>>,
-                    ArgMinRecoverySampler>;
-using NtHashPrecomputedArgMinRecoveryMixin =
     ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kRuntime>>,
-                    ArgMinRecoverySampler>;
+                    StdArgMinRecoverySampler>;
+using NtHashPrecomputedArgMinRecoveryMixin =
+    ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kPrecomputed>>,
+                    StdArgMinRecoverySampler>;
 
 }  // namespace
 
