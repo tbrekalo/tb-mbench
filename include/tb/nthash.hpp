@@ -68,13 +68,15 @@ inline constexpr auto kPrecomputed = [] consteval {
 
 }  // namespace detail
 
-template <bool Precomputed = true>
+enum class NtHashImpl { kRuntime, kPrecomputed };
+
+template <NtHashImpl impl>
 inline constexpr auto nthash =
     [] [[using gnu: always_inline, pure, hot]]
     (KMer::value_type prev, std::uint8_t base_out, std::uint8_t base_in,
      std::uint64_t k) {
       constexpr auto srol_out = [](std::uint8_t base_out, std::uint64_t k) {
-        if constexpr (Precomputed) {
+        if constexpr (impl == NtHashImpl::kPrecomputed) {
           return detail::kPrecomputed[k][base_out];
         } else {
           return srol(kNtHashSeeds[base_out], k);

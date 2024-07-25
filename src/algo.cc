@@ -243,7 +243,7 @@ struct ThomasWangHasher {
   }
 };
 
-template <bool Precomputed = true>
+template <auto roll_fn>
 struct NthHasher {
   std::vector<KMer::value_type> operator()(MinimizeArgs args) const {
     if (args.seq.size() < args.window_length + args.kmer_length - 2) {
@@ -261,8 +261,8 @@ struct NthHasher {
     hashes[0] = value;
 
     for (std::size_t i = args.kmer_length; i < args.seq.size(); ++i) {
-      value = nthash<Precomputed>(value, args.seq.Code(i - args.kmer_length),
-                                  args.seq.Code(i), args.kmer_length);
+      value = roll_fn(value, args.seq.Code(i - args.kmer_length),
+                      args.seq.Code(i), args.kmer_length);
       hashes[i - args.kmer_length] = value;
     }
 
@@ -354,17 +354,20 @@ struct ArgMinEveRecoverySampler {
 };
 
 using ArgMinMixin = ArgMinMixinBase<ThomasWangHasher, ArgMinSampler>;
-using NtHashArgMinMixin = ArgMinMixinBase<NthHasher<false>, ArgMinSampler>;
+using NtHashArgMinMixin =
+    ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kRuntime>>, ArgMinSampler>;
 using NtHashPrecomputedArgMinMixin =
-    ArgMinMixinBase<NthHasher<true>, ArgMinSampler>;
+    ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kPrecomputed>>, ArgMinSampler>;
 using ArgMinRecoveryMixin =
     ArgMinMixinBase<ThomasWangHasher, ArgMinRecoverySampler>;
 using ArgMinEverRecoveryMixin =
     ArgMinMixinBase<ThomasWangHasher, ArgMinEveRecoverySampler>;
 using NtHashArgMinRecoveryMixin =
-    ArgMinMixinBase<NthHasher<false>, ArgMinRecoverySampler>;
+    ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kPrecomputed>>,
+                    ArgMinRecoverySampler>;
 using NtHashPrecomputedArgMinRecoveryMixin =
-    ArgMinMixinBase<NthHasher<true>, ArgMinRecoverySampler>;
+    ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kRuntime>>,
+                    ArgMinRecoverySampler>;
 
 }  // namespace
 
