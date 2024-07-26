@@ -376,45 +376,19 @@ class UnrolledSampler {
                                         std::vector<KMer::value_type>);
 
   template <std::size_t I>
-  static constexpr auto MinImpl =
-      +[](MinimizeArgs args,
-          std::vector<KMer::value_type> hashes) -> std::vector<KMer> {
-    constexpr auto min_element = [] [[using gnu: always_inline, hot, const]] (
-                                     std::span<KMer::value_type> span) {
-      auto min = span.begin();
-      [&]<std::size_t... Is>(std::index_sequence<Is...>) {
-        (..., [&](auto it) { min = *it < *min ? it : min; }(span.begin() + Is));
-      }(std::make_index_sequence<I>{});
-      return min;
-    };
-
-    std::vector<KMer> dst(hashes.size());
-    std::int64_t idx = -1;
-    for (std::size_t i = args.window_length; i <= hashes.size(); ++i) {
-      auto window = std::span(hashes.begin() + i - args.window_length,
-                              hashes.begin() + i);
-
-      if (auto min_pos =
-              min_element(window) - window.begin() + i - args.window_length;
-          idx == -1 || dst[idx].position() != min_pos) {
-        dst[++idx] = KMer(hashes[min_pos], min_pos, 0);
-      }
-    }
-
-    dst.resize(idx + 1);
-    return dst;
-  };
-
-  template <std::size_t I>
-  static constexpr auto ImplGenerator = []() noexcept {
-    return [](MinimizeArgs args, std::vector<KMer::value_type> hashes) {
-      return Sampler<decltype([](std::span<KMer::value_type> span) noexcept {
-        auto min = span.begin();
+  static constexpr auto ImplGenerator = []() -> ImplPtr {
+    return +[](MinimizeArgs args,
+               std::vector<KMer::value_type> hashes) -> std::vector<KMer> {
+      return Sampler<decltype([] [[using gnu: always_inline, hot, const]] (
+                                  std::span<KMer::value_type> span) {
+        auto min = 0;
         [&]<std::size_t... Is>(std::index_sequence<Is...>) {
-          (...,
-           [&](auto it) { min = *it < *min ? it : min; }(span.begin() + Is));
+          (..., [&](auto j) {
+            auto c = span[j] < span[min];
+            min = c * j + (1 - c) * min;
+          }(Is));
         }(std::make_index_sequence<I>{});
-        return min;
+        return span.begin() + min;
       })>{}(args, std::move(hashes));
     };
   };
@@ -422,7 +396,7 @@ class UnrolledSampler {
   static constexpr auto kJumpTable = [] consteval {
     std::array<ImplPtr, kJumpTblSize> dst;
     [&]<std::size_t... Is>(std::index_sequence<Is...>) {
-      (..., (dst[Is] = MinImpl<Is>));
+      (..., (dst[Is] = ImplGenerator<Is>()));
     }(std::make_index_sequence<kJumpTblSize>{});
 
     return dst;
