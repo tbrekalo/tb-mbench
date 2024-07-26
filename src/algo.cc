@@ -275,7 +275,7 @@ struct NthHasher {
 template <class T>
 concept AMinElement = requires(T lhs, T rhs) {
   { lhs < rhs } -> std::same_as<bool>;
-  std::copyable<T>;
+  requires std::copyable<T>;
 };
 
 struct StdMinElement {
