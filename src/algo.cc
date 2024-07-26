@@ -218,7 +218,7 @@ class ArgMinMixinBase {
   [[no_unique_address]] Sampler sampler_;
 
  public:
-  std::vector<KMer> operator()(MinimizeArgs args) {
+  std::vector<KMer> operator()(MinimizeArgs args) const {
     if (args.seq.size() < args.window_length + args.kmer_length - 2) {
       return {};
     }
@@ -280,21 +280,24 @@ concept AMinElement = requires(T lhs, T rhs) {
 
 struct StdMinElement {
   template <AMinElement T>
-  constexpr std::span<T>::iterator operator()(std::span<T> span) const {
+  constexpr std::span<T>::iterator operator()(
+      std::span<T> span) const noexcept {
     return std::ranges::min_element(span);
   }
 };
 
 struct EveMinElement {
   template <AMinElement T>
-  constexpr std::span<T>::iterator operator()(std::span<T> span) const {
+  constexpr std::span<T>::iterator operator()(
+      std::span<T> span) const noexcept {
     return eve::algo::min_element(span);
   }
 };
 
 struct TernaryMinElement {
   template <class T>
-  constexpr std::span<T>::iterator operator()(std::span<T> span) const {
+  constexpr std::span<T>::iterator operator()(
+      std::span<T> span) const noexcept {
     auto ret = span.begin();
     for (auto it = ret + 1; it < span.end(); ++it) {
       ret = *ret < *it ? ret : it;
@@ -309,8 +312,8 @@ class ArgMinSampler {
   [[no_unique_address]] MinPolicy min_element_;
 
  public:
-  std::vector<KMer> operator()(MinimizeArgs args,
-                               std::vector<KMer::value_type> hashes) const {
+  std::vector<KMer> operator()(
+      MinimizeArgs args, std::vector<KMer::value_type> hashes) const noexcept {
     std::vector<KMer> dst(hashes.size());
     std::int64_t idx = -1;
     for (std::size_t i = args.window_length; i <= hashes.size(); ++i) {
@@ -328,80 +331,13 @@ class ArgMinSampler {
   }
 };
 
-template <template <class> class Sampler>
-class UnrolledSampler {
-  static constexpr std::size_t kMaxW = 31;
-  static constexpr std::size_t kJumpTblSize = kMaxW + 2uz;
-
-  using ImplPtr = std::vector<KMer> (*)(MinimizeArgs,
-                                        std::vector<KMer::value_type>);
-
-  template <std::size_t I>
-  static constexpr auto MinImpl =
-      +[](MinimizeArgs args,
-          std::vector<KMer::value_type> hashes) -> std::vector<KMer> {
-    constexpr auto min_element = [](std::span<KMer::value_type> span) {
-      auto min = span.begin();
-      [&]<std::size_t... Is>(std::index_sequence<Is...>) {
-        (..., [&](auto it) { min = *it < *min ? it : min; }(span.begin() + Is));
-      }(std::make_index_sequence<I>{});
-      return min;
-    };
-
-    std::vector<KMer> dst(hashes.size());
-    std::int64_t idx = -1;
-    for (std::size_t i = args.window_length; i <= hashes.size(); ++i) {
-      auto window = std::span(hashes.begin() + i - args.window_length,
-                              hashes.begin() + i);
-
-      if (auto min_pos =
-              min_element(window) - window.begin() + i - args.window_length;
-          idx == -1 || dst[idx].position() != min_pos) {
-        dst[++idx] = KMer(hashes[min_pos], min_pos, 0);
-      }
-    }
-
-    dst.resize(idx + 1);
-    return dst;
-  };
-
-  template <std::size_t I>
-  static constexpr auto ImplGenerator = []() {
-    return [](MinimizeArgs args, std::vector<KMer::value_type> hashes) {
-      return Sampler<decltype([](std::span<KMer::value_type> span) {
-        auto min = span.begin();
-        [&]<std::size_t... Is>(std::index_sequence<Is...>) {
-          (...,
-           [&](auto it) { min = *it < *min ? it : min; }(span.begin() + Is));
-        }(std::make_index_sequence<I>{});
-        return min;
-      })>{}(args, std::move(hashes));
-    };
-  };
-
-  static constexpr auto kJumpTable = [] consteval {
-    std::array<ImplPtr, kJumpTblSize> dst;
-    [&]<std::size_t... Is>(std::index_sequence<Is...>) {
-      (..., (dst[Is] = MinImpl<Is>));
-    }(std::make_index_sequence<kJumpTblSize>{});
-
-    return dst;
-  }();
-
- public:
-  std::vector<KMer> operator()(MinimizeArgs args,
-                               std::vector<KMer::value_type> hashes) const {
-    return kJumpTable[args.window_length](args, std::move(hashes));
-  }
-};
-
 template <class MinPolicy>
 class ArgMinRecoverySampler {
   [[no_unique_address]] MinPolicy min_element_;
 
  public:
-  std::vector<KMer> operator()(MinimizeArgs args,
-                               std::vector<KMer::value_type> hashes) const {
+  std::vector<KMer> operator()(
+      MinimizeArgs args, std::vector<KMer::value_type> hashes) const noexcept {
     std::vector<KMer> dst(hashes.size());
     std::size_t min_pos =
         std::min_element(hashes.begin(), hashes.begin() + args.window_length) -
@@ -428,6 +364,74 @@ class ArgMinRecoverySampler {
 
     dst.resize(idx);
     return dst;
+  }
+};
+
+template <template <class> class Sampler>
+class UnrolledSampler {
+  static constexpr std::size_t kMaxW = 31;
+  static constexpr std::size_t kJumpTblSize = kMaxW + 2uz;
+
+  using ImplPtr = std::vector<KMer> (*)(MinimizeArgs,
+                                        std::vector<KMer::value_type>);
+
+  template <std::size_t I>
+  static constexpr auto MinImpl =
+      +[](MinimizeArgs args,
+          std::vector<KMer::value_type> hashes) -> std::vector<KMer> {
+    constexpr auto min_element = [] [[using gnu: always_inline, hot, const]] (
+                                     std::span<KMer::value_type> span) {
+      auto min = span.begin();
+      [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+        (..., [&](auto it) { min = *it < *min ? it : min; }(span.begin() + Is));
+      }(std::make_index_sequence<I>{});
+      return min;
+    };
+
+    std::vector<KMer> dst(hashes.size());
+    std::int64_t idx = -1;
+    for (std::size_t i = args.window_length; i <= hashes.size(); ++i) {
+      auto window = std::span(hashes.begin() + i - args.window_length,
+                              hashes.begin() + i);
+
+      if (auto min_pos =
+              min_element(window) - window.begin() + i - args.window_length;
+          idx == -1 || dst[idx].position() != min_pos) {
+        dst[++idx] = KMer(hashes[min_pos], min_pos, 0);
+      }
+    }
+
+    dst.resize(idx + 1);
+    return dst;
+  };
+
+  template <std::size_t I>
+  static constexpr auto ImplGenerator = []() noexcept {
+    return [](MinimizeArgs args, std::vector<KMer::value_type> hashes) {
+      return Sampler<decltype([](std::span<KMer::value_type> span) noexcept {
+        auto min = span.begin();
+        [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+          (...,
+           [&](auto it) { min = *it < *min ? it : min; }(span.begin() + Is));
+        }(std::make_index_sequence<I>{});
+        return min;
+      })>{}(args, std::move(hashes));
+    };
+  };
+
+  static constexpr auto kJumpTable = [] consteval {
+    std::array<ImplPtr, kJumpTblSize> dst;
+    [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+      (..., (dst[Is] = MinImpl<Is>));
+    }(std::make_index_sequence<kJumpTblSize>{});
+
+    return dst;
+  }();
+
+ public:
+  std::vector<KMer> operator()(
+      MinimizeArgs args, std::vector<KMer::value_type> hashes) const noexcept {
+    return kJumpTable[args.window_length](args, std::move(hashes));
   }
 };
 
