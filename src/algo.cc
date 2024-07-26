@@ -279,8 +279,6 @@ concept AMinElement = requires(T lhs, T rhs) {
 };
 
 struct StdMinElement {
-  constexpr StdMinElement(std::int32_t window_length) {}
-
   template <AMinElement T>
   constexpr std::span<T>::iterator operator()(std::span<T> span) const {
     return std::ranges::min_element(span);
@@ -288,8 +286,6 @@ struct StdMinElement {
 };
 
 struct EveMinElement {
-  constexpr EveMinElement(std::int32_t window_length) {}
-
   template <AMinElement T>
   constexpr std::span<T>::iterator operator()(std::span<T> span) const {
     return eve::algo::min_element(span);
@@ -297,8 +293,6 @@ struct EveMinElement {
 };
 
 struct TernaryMinElement {
-  constexpr TernaryMinElement(std::int32_t window_length) {}
-
   template <class T>
   constexpr std::span<T>::iterator operator()(std::span<T> span) const {
     auto ret = span.begin();
@@ -312,17 +306,18 @@ struct TernaryMinElement {
 
 template <class MinPolicy>
 class ArgMinSampler {
+  [[no_unique_address]] MinPolicy min_element_;
+
  public:
   std::vector<KMer> operator()(MinimizeArgs args,
                                std::vector<KMer::value_type> hashes) const {
-    MinPolicy min_element(args.window_length);
     std::vector<KMer> dst(hashes.size());
     std::int64_t idx = -1;
     for (std::size_t i = args.window_length; i <= hashes.size(); ++i) {
       auto window = std::span(hashes.begin() + i - args.window_length,
                               hashes.begin() + i);
       if (auto min_pos =
-              min_element(window) - window.begin() + i - args.window_length;
+              min_element_(window) - window.begin() + i - args.window_length;
           idx == -1 || dst[idx].position() != min_pos) {
         dst[++idx] = KMer(hashes[min_pos], min_pos, 0);
       }
@@ -402,10 +397,11 @@ class UnrolledSampler {
 
 template <class MinPolicy>
 class ArgMinRecoverySampler {
+  [[no_unique_address]] MinPolicy min_element_;
+
  public:
   std::vector<KMer> operator()(MinimizeArgs args,
                                std::vector<KMer::value_type> hashes) const {
-    MinPolicy min_element(args.window_length);
     std::vector<KMer> dst(hashes.size());
     std::size_t min_pos =
         std::min_element(hashes.begin(), hashes.begin() + args.window_length) -
@@ -421,7 +417,8 @@ class ArgMinRecoverySampler {
       } else {
         auto window = std::span(hashes.begin() + i - args.window_length,
                                 hashes.begin() + i);
-        min_pos = min_element(window) - window.begin() + i - args.window_length;
+        min_pos =
+            min_element_(window) - window.begin() + i - args.window_length;
         cond = dst[idx - 1].position() != min_pos;
         min_pos = cond * min_pos + (!cond) * dst[idx].position();
       }
@@ -453,11 +450,10 @@ using ArgMinUnrolledMixin =
     ArgMinMixinBase<ThomasWangHasher, UnrolledArgMinSampler>;
 // NtHash ArgMin mixins
 using NtHashArgMinMixin =
-    ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kRuntime>>,
-                    TernaryArgMinSampler>;
+    ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kRuntime>>, StdArgMinSampler>;
 using NtHashPrecomputedArgMinMixin =
     ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kPrecomputed>>,
-                    TernaryArgMinSampler>;
+                    StdArgMinSampler>;
 using NtHashPrecomputedArgMinUnrolledMixin =
     ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kPrecomputed>>,
                     UnrolledArgMinSampler>;
