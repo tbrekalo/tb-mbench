@@ -294,16 +294,17 @@ struct EveMinElement {
   }
 };
 
-struct TernaryMinElement {
+struct PredicationMinElement {
   template <class T>
   constexpr std::span<T>::iterator operator()(
       std::span<T> span) const noexcept {
-    auto ret = span.begin();
-    for (auto it = ret + 1; it < span.end(); ++it) {
-      ret = *ret < *it ? ret : it;
+    auto idx = 0;
+    for (std::size_t jdx = 0; jdx < span.size(); ++jdx) {
+      auto c = span[jdx] < span[idx];
+      idx = c * jdx + (1 - c) * idx;
     }
 
-    return ret;
+    return span.begin() + idx;
   }
 };
 
@@ -410,35 +411,37 @@ class UnrolledSampler {
 };
 
 // Initialize ArgMin samplers
-using StdArgMinSampler = ArgMinSampler<StdMinElement>;
+using StdArgMinSampler = ArgMinSampler<PredicationMinElement>;
 using EveArgMinSampler = ArgMinSampler<EveMinElement>;
-using TernaryArgMinSampler = ArgMinSampler<TernaryMinElement>;
+using PredicationArgMinSampler = ArgMinSampler<PredicationMinElement>;
 using UnrolledArgMinSampler = UnrolledSampler<ArgMinSampler>;
 
 // Initialize ArgMinRecovery samplers
-using StdArgMinRecoverySampler = ArgMinRecoverySampler<StdMinElement>;
+using StdArgMinRecoverySampler = ArgMinRecoverySampler<PredicationMinElement>;
 using EveArgMinRecoverySampler = ArgMinRecoverySampler<EveMinElement>;
-using TernaryArgMinRecoverySampler = ArgMinRecoverySampler<TernaryMinElement>;
+using PredicationArgMinRecoverySampler =
+    ArgMinRecoverySampler<PredicationMinElement>;
 using UnrolledArgMinRecoverySampler = UnrolledSampler<ArgMinRecoverySampler>;
 
 // ArgMin mixins
-using ArgMinMixin = ArgMinMixinBase<ThomasWangHasher, StdArgMinSampler>;
+using ArgMinMixin = ArgMinMixinBase<ThomasWangHasher, PredicationArgMinSampler>;
 using ArgMinEveMixin = ArgMinMixinBase<ThomasWangHasher, EveArgMinSampler>;
 using ArgMinUnrolledMixin =
     ArgMinMixinBase<ThomasWangHasher, UnrolledArgMinSampler>;
 // NtHash ArgMin mixins
 using NtHashArgMinMixin =
-    ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kRuntime>>, StdArgMinSampler>;
+    ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kRuntime>>,
+                    PredicationArgMinSampler>;
 using NtHashPrecomputedArgMinMixin =
     ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kPrecomputed>>,
-                    StdArgMinSampler>;
+                    PredicationArgMinSampler>;
 using NtHashPrecomputedArgMinUnrolledMixin =
     ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kPrecomputed>>,
                     UnrolledArgMinSampler>;
 
 // ArgMinRecovery mixins
 using ArgMinRecoveryMixin =
-    ArgMinMixinBase<ThomasWangHasher, StdArgMinRecoverySampler>;
+    ArgMinMixinBase<ThomasWangHasher, PredicationArgMinRecoverySampler>;
 using ArgMinEveRecoveryMixin =
     ArgMinMixinBase<ThomasWangHasher, EveArgMinRecoverySampler>;
 using ArgMinUnrolledRecoveryMixin =
@@ -446,10 +449,10 @@ using ArgMinUnrolledRecoveryMixin =
 // NtHash ArgMin recovery mixins
 using NtHashArgMinRecoveryMixin =
     ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kRuntime>>,
-                    StdArgMinRecoverySampler>;
+                    PredicationArgMinRecoverySampler>;
 using NtHashPrecomputedArgMinRecoveryMixin =
     ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kPrecomputed>>,
-                    StdArgMinRecoverySampler>;
+                    PredicationArgMinRecoverySampler>;
 using NtHashPrecomputedArgMinUnrolledRecoveryMixin =
     ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kPrecomputed>>,
                     UnrolledArgMinRecoverySampler>;
