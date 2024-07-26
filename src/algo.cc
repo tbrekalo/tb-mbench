@@ -1,6 +1,7 @@
 #include "tb/algo.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <concepts>
 #include <deque>
@@ -277,32 +278,82 @@ concept AMinElement = requires(T lhs, T rhs) {
   std::copyable<T>;
 };
 
-constexpr auto StdMinElement =
-    []<AMinElement T>(std::span<T> span) -> std::span<T>::iterator {
-  return std::ranges::min_element(span);
-};
+struct StdMinElement {
+  StdMinElement(std::int32_t window_length) {}
 
-constexpr auto EveMinElement =
-    []<AMinElement T>(std::span<T> span) -> std::span<T>::iterator {
-  return eve::algo::min_element(span);
-};
-
-constexpr auto TernaryMinElement =
-    []<AMinElement T> [[gnu::always_inline]] (
-        std::span<T> span) -> std::span<T>::iterator {
-  auto ret = span.begin();
-  for (auto it = ret + 1; it < span.end(); ++it) {
-    ret = *ret < *it ? ret : it;
+  template <AMinElement T>
+  constexpr std::span<T>::iterator operator()(std::span<T> span) const {
+    return std::ranges::min_element(span);
   }
+};
 
-  return ret;
+struct EveMinElement {
+  EveMinElement(std::int32_t window_length) {}
+
+  template <AMinElement T>
+  constexpr std::span<T>::iterator operator()(std::span<T> span) const {
+    return eve::algo::min_element(span);
+  }
+};
+
+struct TernaryMinElement {
+  TernaryMinElement(std::int32_t window_length) {}
+
+  template <class T>
+  constexpr std::span<T>::iterator operator()(std::span<T> span) const {
+    auto ret = span.begin();
+    for (auto it = ret + 1; it < span.end(); ++it) {
+      ret = *ret < *it ? ret : it;
+    }
+
+    return ret;
+  }
+};
+
+class UnrolledMinElement {
+  static constexpr std::size_t kMaxW = 31;
+  static constexpr std::size_t kJumpTblSize = kMaxW + 2uz;
+
+  using ArgMinFnPtr =
+      std::span<KMer::value_type>::iterator (*)(std::span<KMer::value_type>);
+
+  template <std::size_t I>
+  static constexpr auto MinImpl = +[](std::span<KMer::value_type> span)
+      -> std::span<KMer::value_type>::iterator {
+    auto min = span.begin();
+    [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+      (..., [&](auto it) { min = *it < *min ? it : min; }(span.begin() + Is));
+    }(std::make_index_sequence<I>{});
+    return min;
+  };
+
+  static constexpr auto kJumpTable = [] consteval {
+    std::array<ArgMinFnPtr, kJumpTblSize> dst;
+    [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+      (..., (dst[Is] = MinImpl<Is>));
+    }(std::make_index_sequence<kJumpTblSize>{});
+
+    return dst;
+  }();
+
+  ArgMinFnPtr impl_;
+
+ public:
+  constexpr UnrolledMinElement(std::int32_t window_length)
+      : impl_(kJumpTable[window_length]) {}
+
+  template <class T>
+  constexpr std::span<T>::iterator operator()(std::span<T> span) const {
+    return impl_(span);
+  }
 };
 
 template <class MinPolicy>
-struct ArgMinSampler {
+class ArgMinSampler {
+ public:
   std::vector<KMer> operator()(MinimizeArgs args,
                                std::vector<KMer::value_type> hashes) const {
-    auto min_element = MinPolicy{};
+    MinPolicy min_element(args.window_length);
     std::vector<KMer> dst(hashes.size());
     std::int64_t idx = -1;
     for (std::size_t i = args.window_length; i <= hashes.size(); ++i) {
@@ -321,10 +372,11 @@ struct ArgMinSampler {
 };
 
 template <class MinPolicy>
-struct ArgMinRecoverySampler {
+class ArgMinRecoverySampler {
+ public:
   std::vector<KMer> operator()(MinimizeArgs args,
-                               std::vector<KMer::value_type> hashes) {
-    auto min_element = MinPolicy{};
+                               std::vector<KMer::value_type> hashes) const {
+    MinPolicy min_element(args.window_length);
     std::vector<KMer> dst(hashes.size());
     std::size_t min_pos =
         std::min_element(hashes.begin(), hashes.begin() + args.window_length) -
@@ -353,36 +405,65 @@ struct ArgMinRecoverySampler {
   }
 };
 
-using StdArgMinSampler = ArgMinSampler<decltype(StdMinElement)>;
-using TernaryArgMinSampler = ArgMinSampler<decltype(TernaryMinElement)>;
+// Initialize ArgMin samplers
+using StdArgMinSampler = ArgMinSampler<StdMinElement>;
+using EveArgMinSampler = ArgMinSampler<EveMinElement>;
+using TernaryArgMinSampler = ArgMinSampler<TernaryMinElement>;
+using UnrolledArgMinSampler = ArgMinSampler<UnrolledMinElement>;
 
-using StdArgMinRecoverySampler = ArgMinRecoverySampler<decltype(StdMinElement)>;
-using EveArgMinRecoverySampler = ArgMinRecoverySampler<decltype(EveMinElement)>;
-using TernaryArgMinRecoverySampler =
-    ArgMinRecoverySampler<decltype(TernaryMinElement)>;
+// Initialize ArgMinRecovery samplers
+using StdArgMinRecoverySampler = ArgMinRecoverySampler<StdMinElement>;
+using EveArgMinRecoverySampler = ArgMinRecoverySampler<EveMinElement>;
+using TernaryArgMinRecoverySampler = ArgMinRecoverySampler<TernaryMinElement>;
+using UnrolledArgMinRecoverySampler = ArgMinSampler<UnrolledMinElement>;
 
-using ArgMinMixin = ArgMinMixinBase<ThomasWangHasher, TernaryArgMinSampler>;
+// ArgMin mixins
+using ArgMinMixin = ArgMinMixinBase<ThomasWangHasher, StdArgMinSampler>;
+using ArgMinEveMixin = ArgMinMixinBase<ThomasWangHasher, EveArgMinSampler>;
+using ArgMinUnrolledMixin =
+    ArgMinMixinBase<ThomasWangHasher, UnrolledArgMinSampler>;
+// NtHash ArgMin mixins
 using NtHashArgMinMixin =
     ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kRuntime>>,
                     TernaryArgMinSampler>;
 using NtHashPrecomputedArgMinMixin =
     ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kPrecomputed>>,
                     TernaryArgMinSampler>;
+using NtHashPrecomputedArgMinUnrolledMixin =
+    ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kPrecomputed>>,
+                    UnrolledArgMinSampler>;
+
+// ArgMinRecovery mixins
 using ArgMinRecoveryMixin =
     ArgMinMixinBase<ThomasWangHasher, StdArgMinRecoverySampler>;
-using ArgMinEverRecoveryMixin =
+using ArgMinEveRecoveryMixin =
     ArgMinMixinBase<ThomasWangHasher, EveArgMinRecoverySampler>;
+using ArgMinUnrolledRecoveryMixin =
+    ArgMinMixinBase<ThomasWangHasher, UnrolledArgMinRecoverySampler>;
+// NtHash ArgMin recovery mixins
 using NtHashArgMinRecoveryMixin =
     ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kRuntime>>,
                     StdArgMinRecoverySampler>;
 using NtHashPrecomputedArgMinRecoveryMixin =
     ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kPrecomputed>>,
                     StdArgMinRecoverySampler>;
+using NtHashPrecomputedArgMinUnrolledRecoveryMixin =
+    ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kPrecomputed>>,
+                    UnrolledArgMinRecoverySampler>;
 
 }  // namespace
 
+// Arg min based implementations
 std::vector<KMer> ArgMinMinimize(MinimizeArgs args) {
   return ArgMinMixin{}(args);
+}
+
+std::vector<KMer> ArgMinEveMinimize(MinimizeArgs args) {
+  return ArgMinEveMixin{}(args);
+}
+
+std::vector<KMer> ArgMinUnrolledMinimize(MinimizeArgs args) {
+  return ArgMinUnrolledMixin{}(args);
 }
 
 std::vector<KMer> NtHashArgMinMinimize(MinimizeArgs args) {
@@ -393,12 +474,21 @@ std::vector<KMer> NtHashPrecomputedArgMinMinimize(MinimizeArgs args) {
   return NtHashPrecomputedArgMinMixin{}(args);
 }
 
+std::vector<KMer> NtHashPrecomputedArgMinUnrolledMinimize(MinimizeArgs args) {
+  return NtHashPrecomputedArgMinUnrolledMixin{}(args);
+}
+
+// Arg min recovery based implementations
 std::vector<KMer> ArgMinRecoveryMinimize(MinimizeArgs args) {
   return ArgMinRecoveryMixin{}(args);
 }
 
 std::vector<KMer> ArgMinRecoveryEveMinimize(MinimizeArgs args) {
-  return ArgMinEverRecoveryMixin{}(args);
+  return ArgMinEveRecoveryMixin{}(args);
+}
+
+std::vector<KMer> ArgMinRecoveryUnrolledMinimize(MinimizeArgs args) {
+  return ArgMinUnrolledRecoveryMixin{}(args);
 }
 
 std::vector<KMer> NtHashArgMinRecoveryMinimize(MinimizeArgs args) {
@@ -407,6 +497,11 @@ std::vector<KMer> NtHashArgMinRecoveryMinimize(MinimizeArgs args) {
 
 std::vector<KMer> NtHashPrecomputedArgMinRecoveryMinimize(MinimizeArgs args) {
   return NtHashPrecomputedArgMinRecoveryMixin{}(args);
+}
+
+std::vector<KMer> NtHashPrecomputedArgMinUnrolledRecoveryMinimize(
+    MinimizeArgs args) {
+  return NtHashPrecomputedArgMinUnrolledRecoveryMixin{}(args);
 }
 
 }  // namespace tb

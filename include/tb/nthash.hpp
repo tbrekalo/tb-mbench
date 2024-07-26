@@ -55,9 +55,11 @@ inline constexpr auto srol =
 
 namespace detail {
 
+inline constexpr std::size_t kMaxK = 32;
+
 inline constexpr auto kPrecomputed = [] consteval {
-  std::array<std::array<std::uint64_t, 4>, 32> dst;
-  for (std::size_t i = 0; i < 32; ++i) {
+  std::array<std::array<std::uint64_t, kNtHashSeeds.size()>, kMaxK> dst;
+  for (std::size_t i = 0; i < kMaxK; ++i) {
     for (std::size_t j = 0; j < kNtHashSeeds.size(); ++j) {
       dst[i][j] = srol(kNtHashSeeds[j], i);
     }
