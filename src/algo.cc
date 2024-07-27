@@ -423,19 +423,13 @@ struct ArgMinRolling {
               hashes.begin();
 
     for (std::int64_t i = args.window_length; i < hashes.size(); ++i) {
-      if (hashes[i] < hashes[min_pos]) {
-        min_pos = i;
+      min_pos = hashes[i] < hashes[min_pos] ? i : min_pos;
+      if (dst[idx - 1].position() > i - args.window_length &&
+          hashes[min_pos] >= dst[idx - 1].value()) {
+        continue;
       }
-      if (dst[idx - 1].position() > i - args.window_length) {
-        if (hashes[min_pos] < dst[idx - 1].value()) {
-          dst[idx++] = KMer(hashes[min_pos], min_pos, 0);
-          i = min_pos++;
-          continue;
-        }
-      } else {
-        dst[idx++] = KMer(hashes[min_pos], min_pos, 0);
-        i = min_pos++;
-      }
+      dst[idx++] = KMer(hashes[min_pos], min_pos, 0);
+      i = min_pos++;
     }
 
     dst.resize(idx);
