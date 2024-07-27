@@ -347,12 +347,11 @@ class ArgMinRecoverySampler {
 
     std::size_t idx = 1;
     for (std::size_t i = args.window_length + 1; i <= hashes.size(); ++i) {
-      bool cond;
+      bool cond = 1;
       if (min_pos >= i - args.window_length) {
         cond = hashes[i - 1] < hashes[min_pos];
         min_pos = cond * (i - 1) + (!cond) * min_pos;
       } else {
-        cond = 1;
         auto window = std::span(hashes.begin() + i - args.window_length,
                                 hashes.begin() + i);
         min_pos =
@@ -409,6 +408,41 @@ class UnrolledSampler {
   }
 };
 
+struct ArgMinRolling {
+  std::vector<KMer> operator()(MinimizeArgs args,
+                               std::vector<KMer::value_type> hashes) const {
+    std::vector<KMer> dst(hashes.size());
+    std::int64_t idx = 0, min_pos = std::min_element(
+                                        hashes.begin(),
+                                        hashes.begin() + args.window_length) -
+                                    hashes.begin();
+
+    dst[idx++] = KMer(hashes[min_pos], min_pos, 0);
+    min_pos = std::min_element(hashes.begin() + min_pos + 1,
+                               hashes.begin() + args.window_length) -
+              hashes.begin();
+
+    for (std::int64_t i = args.window_length; i < hashes.size(); ++i) {
+      if (hashes[i] < hashes[min_pos]) {
+        min_pos = i;
+      }
+      if (dst[idx - 1].position() > i - args.window_length) {
+        if (hashes[min_pos] < dst[idx - 1].value()) {
+          dst[idx++] = KMer(hashes[min_pos], min_pos, 0);
+          i = min_pos++;
+          continue;
+        }
+      } else {
+        dst[idx++] = KMer(hashes[min_pos], min_pos, 0);
+        i = min_pos++;
+      }
+    }
+
+    dst.resize(idx);
+    return dst;
+  }
+};
+
 // Initialize ArgMin samplers
 using StdArgMinSampler = ArgMinSampler<PredicationMinElement>;
 using EveArgMinSampler = ArgMinSampler<EveMinElement>;
@@ -456,6 +490,8 @@ using NtHashPrecomputedArgMinUnrolledRecoveryMixin =
     ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kPrecomputed>>,
                     UnrolledArgMinRecoverySampler>;
 
+// ArgMinRolling mixins
+using ArgMinRollingMixin = ArgMinMixinBase<ThomasWangHasher, ArgMinRolling>;
 }  // namespace
 
 // Arg min based implementations
@@ -507,6 +543,10 @@ std::vector<KMer> NtHashPrecomputedArgMinRecoveryMinimize(MinimizeArgs args) {
 std::vector<KMer> NtHashPrecomputedArgMinUnrolledRecoveryMinimize(
     MinimizeArgs args) {
   return NtHashPrecomputedArgMinUnrolledRecoveryMixin{}(args);
+}
+
+std::vector<KMer> ArgMinRollingMinimize(MinimizeArgs args) {
+  return ArgMinRollingMixin{}(args);
 }
 
 }  // namespace tb

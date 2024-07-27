@@ -34,4 +34,7 @@ std::vector<KMer> NtHashArgMinRecoveryMinimize(MinimizeArgs);
 std::vector<KMer> NtHashPrecomputedArgMinRecoveryMinimize(MinimizeArgs);
 std::vector<KMer> NtHashPrecomputedArgMinUnrolledRecoveryMinimize(MinimizeArgs);
 
+// Arg min rolling
+std::vector<KMer> ArgMinRollingMinimize(MinimizeArgs);
+
 }  // namespace tb

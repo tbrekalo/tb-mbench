@@ -128,3 +128,10 @@ TEST_F(MinimizeTest, NtHashPrecomputedArgMinUnrolledRecoveryVsNtHashArgMin) {
 
   EXPECT_EQ(argmin_minimizers, recovery_minimizers);
 }
+
+TEST_F(MinimizeTest, ArgMinRollingVsArgMin) {
+  auto argmin_minimizers = tb::ArgMinMinimize(args_);
+  auto rolling_minimizers = tb::ArgMinRollingMinimize(args_);
+
+  EXPECT_EQ(argmin_minimizers, rolling_minimizers);
+}

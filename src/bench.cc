@@ -62,4 +62,8 @@ BENCHMARK_TEMPLATE(BM_Minimize,
                    tb::NtHashPrecomputedArgMinUnrolledRecoveryMinimize)
     ->ArgsProduct(kArgList);
 
+// Arg min rolling based
+BENCHMARK_TEMPLATE(BM_Minimize, tb::ArgMinRollingMinimize)
+    ->ArgsProduct(kArgList);
+
 }  // namespace
