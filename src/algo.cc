@@ -352,12 +352,11 @@ class ArgMinRecoverySampler {
         cond = hashes[i - 1] < hashes[min_pos];
         min_pos = cond * (i - 1) + (!cond) * min_pos;
       } else {
+        cond = 1;
         auto window = std::span(hashes.begin() + i - args.window_length,
                                 hashes.begin() + i);
         min_pos =
             min_element_(window) - window.begin() + i - args.window_length;
-        cond = dst[idx - 1].position() != min_pos;
-        min_pos = cond * min_pos + (!cond) * dst[idx].position();
       }
       dst[idx] = KMer(hashes[min_pos], min_pos, 0);
       idx += cond;

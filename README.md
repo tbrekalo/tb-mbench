@@ -38,22 +38,22 @@ cmake --build build
 ### Figures
 | function                                            |   avg ns per bp |
 |:----------------------------------------------------|----------------:|
-| tb::NaiveMinimize                                   |       241.609   |
-| tb::RingMinimize                                    |        26.155   |
-| tb::ArgMinEveMinimize                               |        25.2055  |
-| tb::DequeMinimize                                   |        23.4586  |
-| tb::InplaceMinimize                                 |        21.4939  |
-| tb::NtHashArgMinMinimize                            |        15.4797  |
-| tb::NtHashPrecomputedArgMinMinimize                 |        14.8023  |
-| tb::ArgMinMinimize                                  |        14.7283  |
-| tb::ArgMinRecoveryEveMinimize                       |        11.8637  |
-| tb::NtHashPrecomputedArgMinUnrolledMinimize         |        11.7364  |
-| tb::ArgMinUnrolledMinimize                          |        11.6463  |
-| tb::NtHashArgMinRecoveryMinimize                    |         9.61013 |
-| tb::NtHashPrecomputedArgMinRecoveryMinimize         |         8.9431  |
-| tb::ArgMinRecoveryMinimize                          |         8.93697 |
-| tb::NtHashPrecomputedArgMinUnrolledRecoveryMinimize |         8.44489 |
-| tb::ArgMinRecoveryUnrolledMinimize                  |         8.43092 |
+| tb::NaiveMinimize                                   |       241.667   |
+| tb::RingMinimize                                    |        26.1466  |
+| tb::ArgMinEveMinimize                               |        25.3506  |
+| tb::DequeMinimize                                   |        23.5147  |
+| tb::NtHashArgMinMinimize                            |        22.9285  |
+| tb::NtHashPrecomputedArgMinMinimize                 |        22.3194  |
+| tb::ArgMinMinimize                                  |        22.1474  |
+| tb::InplaceMinimize                                 |        21.4186  |
+| tb::NtHashPrecomputedArgMinUnrolledMinimize         |        11.6007  |
+| tb::ArgMinUnrolledMinimize                          |        11.5099  |
+| tb::NtHashArgMinRecoveryMinimize                    |        10.9382  |
+| tb::ArgMinRecoveryEveMinimize                       |        10.5707  |
+| tb::NtHashPrecomputedArgMinRecoveryMinimize         |        10.2953  |
+| tb::ArgMinRecoveryMinimize                          |        10.2067  |
+| tb::NtHashPrecomputedArgMinUnrolledRecoveryMinimize |         8.36242 |
+| tb::ArgMinRecoveryUnrolledMinimize                  |         8.28662 |
 ![](misc/perf.png)
 
 ## Reference
