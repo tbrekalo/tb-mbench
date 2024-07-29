@@ -69,4 +69,7 @@ BENCHMARK_TEMPLATE(BM_Minimize,
 BENCHMARK_TEMPLATE(BM_Minimize, tb::ArgMinRollingMinimize)
     ->ArgsProduct(kArgList);
 
+// Split window
+BENCHMARK_TEMPLATE(BM_Minimize, tb::SplitWindowMinimize)->ArgsProduct(kArgList);
+
 }  // namespace

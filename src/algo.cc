@@ -464,6 +464,60 @@ struct ArgMinRolling {
   }
 };
 
+struct SplitWindow {
+  std::vector<KMer> operator()(MinimizeArgs args,
+                               std::vector<KMer::value_type> hashes) const {
+    if (hashes.empty()) {
+      return {};
+    }
+
+    std::vector<KMer> dst(hashes.size());
+    std::vector<std::int64_t> lhs, rhs;
+    std::int64_t idx = 0, rhs_min = 0;
+
+    auto push_back = [&](std::int64_t i) {
+      rhs_min = hashes[i] < hashes[rhs_min] ? i : rhs_min;
+      rhs.push_back(i);
+    };
+
+    auto pop_front = [&](std::int64_t i) {
+      if (lhs.empty()) {
+        for (; !rhs.empty(); rhs.pop_back()) {
+          if (lhs.empty() || hashes[rhs.back()] <= hashes[lhs.back()]) {
+            lhs.push_back(rhs.back());
+            continue;
+          }
+          lhs.push_back(lhs.back());
+        }
+        rhs_min = i;
+      }
+      lhs.pop_back();
+    };
+
+    for (std::int64_t i = 0;
+         i < std::min<std::int64_t>(hashes.size(), args.window_length); ++i) {
+      push_back(i);
+    }
+
+    dst[idx++] = KMer(hashes[rhs_min], rhs_min, 0);
+    pop_front(args.window_length);
+    for (std::int64_t i = args.window_length; i < hashes.size(); ++i) {
+      push_back(i);
+      auto min_pos = !lhs.empty() && hashes[lhs.back()] <= hashes[rhs_min]
+                         ? lhs.back()
+                         : rhs_min;
+      if (dst[idx - 1].position() != min_pos) {
+        dst[idx++] = KMer(hashes[min_pos], min_pos, 0);
+      }
+
+      pop_front(i + 1);
+    }
+
+    dst.resize(idx);
+    return dst;
+  }
+};
+
 // Initialize ArgMin samplers
 using StdArgMinSampler = ArgMinSampler<PredicationMinElement>;
 using EveArgMinSampler = ArgMinSampler<EveMinElement>;
@@ -518,6 +572,10 @@ using NtHashPrecomputedArgMinUnrolledRecoveryMixin =
 
 // ArgMinRolling mixins
 using ArgMinRollingMixin = ArgMinMixinBase<ThomasWangHasher, ArgMinRolling>;
+
+// SplitWindow mixins
+using SplitWindowMixin = ArgMinMixinBase<ThomasWangHasher, SplitWindow>;
+
 }  // namespace
 
 // Arg min based implementations
@@ -581,6 +639,10 @@ std::vector<KMer> NtHashPrecomputedArgMinUnrolledRecoveryMinimize(
 
 std::vector<KMer> ArgMinRollingMinimize(MinimizeArgs args) {
   return ArgMinRollingMixin{}(args);
+}
+
+std::vector<KMer> SplitWindowMinimize(MinimizeArgs args) {
+  return SplitWindowMixin{}(args);
 }
 
 }  // namespace tb

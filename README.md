@@ -38,25 +38,26 @@ cmake --build build
 ### Figures
 | function                                            |   avg ns per bp |
 |:----------------------------------------------------|----------------:|
-| tb::NaiveMinimize                                   |       241.645   |
-| tb::ArgMinDuffMinimize                              |        28.5821  |
-| tb::RingMinimize                                    |        26.21    |
-| tb::ArgMinEveMinimize                               |        25.2662  |
-| tb::NtHashArgMinMinimize                            |        23.5889  |
-| tb::DequeMinimize                                   |        23.5029  |
-| tb::NtHashPrecomputedArgMinMinimize                 |        22.9015  |
-| tb::ArgMinMinimize                                  |        22.7272  |
-| tb::InplaceMinimize                                 |        20.8437  |
-| tb::NtHashPrecomputedArgMinUnrolledMinimize         |        11.6283  |
-| tb::ArgMinUnrolledMinimize                          |        11.5674  |
-| tb::NtHashArgMinRecoveryMinimize                    |        10.925   |
-| tb::ArgMinRollingMinimize                           |        10.7311  |
-| tb::ArgMinRecoveryEveMinimize                       |        10.4815  |
-| tb::NtHashPrecomputedArgMinRecoveryMinimize         |        10.2714  |
-| tb::ArgMinRecoveryMinimize                          |        10.2034  |
-| tb::ArgMinRecoveryDuffMinimize                      |         8.70449 |
-| tb::NtHashPrecomputedArgMinUnrolledRecoveryMinimize |         8.31288 |
-| tb::ArgMinRecoveryUnrolledMinimize                  |         8.28768 |
+| tb::NaiveMinimize                                   |       241.694   |
+| tb::ArgMinDuffMinimize                              |        28.4622  |
+| tb::RingMinimize                                    |        26.2314  |
+| tb::ArgMinEveMinimize                               |        25.3984  |
+| tb::DequeMinimize                                   |        23.36    |
+| tb::NtHashArgMinMinimize                            |        23.1313  |
+| tb::ArgMinMinimize                                  |        22.5943  |
+| tb::NtHashPrecomputedArgMinMinimize                 |        22.4447  |
+| tb::InplaceMinimize                                 |        20.8296  |
+| tb::SplitWindowMinimize                             |        18.5789  |
+| tb::NtHashPrecomputedArgMinUnrolledMinimize         |        11.6239  |
+| tb::ArgMinUnrolledMinimize                          |        11.4983  |
+| tb::ArgMinRollingMinimize                           |        11.107   |
+| tb::NtHashArgMinRecoveryMinimize                    |        11.0996  |
+| tb::ArgMinRecoveryEveMinimize                       |        10.8627  |
+| tb::NtHashPrecomputedArgMinRecoveryMinimize         |        10.4391  |
+| tb::ArgMinRecoveryMinimize                          |        10.3098  |
+| tb::NtHashPrecomputedArgMinUnrolledRecoveryMinimize |         8.9795  |
+| tb::ArgMinRecoveryDuffMinimize                      |         8.7492  |
+| tb::ArgMinRecoveryUnrolledMinimize                  |         8.74724 |
 ![](misc/perf.png)
 
 ## Reference
@@ -64,3 +65,4 @@ cmake --build build
 - [Reducing storage requirements for biological sequence comparison](https://doi.org/10.1093/bioinformatics/bth408)
 - [CURIOUS CODING NtHash](https://curiouscoding.nl/posts/nthash/)
 - [Mohamadi, Hamid, Justin Chu, Benjamin P. Vandervalk, and Inanc Birol. 2016. “Nthash: Recursive Nucleotide Hashing.” Bioinformatics 32 (22): 3492–94.](http://dx.doi.org/10.1093/bioinformatics/btw397)
+- [Codeforces split window blog post](https://codeforces.com/blog/entry/71687)

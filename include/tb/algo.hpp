@@ -39,4 +39,7 @@ std::vector<KMer> NtHashPrecomputedArgMinUnrolledRecoveryMinimize(MinimizeArgs);
 // Arg min rolling
 std::vector<KMer> ArgMinRollingMinimize(MinimizeArgs);
 
+// Split window
+std::vector<KMer> SplitWindowMinimize(MinimizeArgs);
+
 }  // namespace tb

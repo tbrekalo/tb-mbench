@@ -149,3 +149,10 @@ TEST_F(MinimizeTest, ArgMinRollingVsArgMin) {
 
   EXPECT_EQ(argmin_minimizers, rolling_minimizers);
 }
+
+TEST_F(MinimizeTest, SplitWindowVsArgMin) {
+  auto argmin_minimizers = tb::ArgMinMinimize(args_);
+  auto split_minimizers = tb::SplitWindowMinimize(args_);
+
+  EXPECT_EQ(argmin_minimizers, split_minimizers);
+}
