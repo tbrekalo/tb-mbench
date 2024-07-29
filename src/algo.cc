@@ -295,7 +295,7 @@ struct EveMinElement {
 };
 
 struct PredicationMinElement {
-  template <class T>
+  template <AMinElement T>
   constexpr std::span<T>::iterator operator()(
       std::span<T> span) const noexcept {
     auto idx = 0;
@@ -305,6 +305,33 @@ struct PredicationMinElement {
     }
 
     return span.begin() + idx;
+  }
+};
+
+struct DuffMinElement {
+  template <AMinElement T>
+  constexpr std::span<T>::iterator operator()(
+      std::span<T> span) const noexcept {
+    std::int64_t i = span.size(), min_pos = 0;
+    auto min = [span](std::int64_t lhs_idx, std::int64_t rhs_idx) {
+      auto cond = span[lhs_idx] <= span[rhs_idx];
+      return cond * lhs_idx + (1 - cond) * rhs_idx;
+    };
+
+    switch (i % 4) {
+      while (i > 0) {
+        case 0:
+          min_pos = min(--i, min_pos);
+        case 3:
+          min_pos = min(--i, min_pos);
+        case 2:
+          min_pos = min(--i, min_pos);
+        case 1:
+          min_pos = min(--i, min_pos);
+      }
+    }
+
+    return span.begin() + min_pos;
   }
 };
 
@@ -441,11 +468,13 @@ struct ArgMinRolling {
 using StdArgMinSampler = ArgMinSampler<PredicationMinElement>;
 using EveArgMinSampler = ArgMinSampler<EveMinElement>;
 using PredicationArgMinSampler = ArgMinSampler<PredicationMinElement>;
+using DuffArgMinSampler = ArgMinSampler<DuffMinElement>;
 using UnrolledArgMinSampler = UnrolledSampler<ArgMinSampler>;
 
 // Initialize ArgMinRecovery samplers
 using StdArgMinRecoverySampler = ArgMinRecoverySampler<PredicationMinElement>;
 using EveArgMinRecoverySampler = ArgMinRecoverySampler<EveMinElement>;
+using DuffArgMinRecoverySampler = ArgMinRecoverySampler<DuffMinElement>;
 using PredicationArgMinRecoverySampler =
     ArgMinRecoverySampler<PredicationMinElement>;
 using UnrolledArgMinRecoverySampler = UnrolledSampler<ArgMinRecoverySampler>;
@@ -453,6 +482,7 @@ using UnrolledArgMinRecoverySampler = UnrolledSampler<ArgMinRecoverySampler>;
 // ArgMin mixins
 using ArgMinMixin = ArgMinMixinBase<ThomasWangHasher, PredicationArgMinSampler>;
 using ArgMinEveMixin = ArgMinMixinBase<ThomasWangHasher, EveArgMinSampler>;
+using ArgMinDuffMixin = ArgMinMixinBase<ThomasWangHasher, DuffArgMinSampler>;
 using ArgMinUnrolledMixin =
     ArgMinMixinBase<ThomasWangHasher, UnrolledArgMinSampler>;
 // NtHash ArgMin mixins
@@ -471,6 +501,8 @@ using ArgMinRecoveryMixin =
     ArgMinMixinBase<ThomasWangHasher, PredicationArgMinRecoverySampler>;
 using ArgMinEveRecoveryMixin =
     ArgMinMixinBase<ThomasWangHasher, EveArgMinRecoverySampler>;
+using ArgMinDuffRecoveryMixin =
+    ArgMinMixinBase<ThomasWangHasher, DuffArgMinRecoverySampler>;
 using ArgMinUnrolledRecoveryMixin =
     ArgMinMixinBase<ThomasWangHasher, UnrolledArgMinRecoverySampler>;
 // NtHash ArgMin recovery mixins
@@ -497,6 +529,10 @@ std::vector<KMer> ArgMinEveMinimize(MinimizeArgs args) {
   return ArgMinEveMixin{}(args);
 }
 
+std::vector<KMer> ArgMinDuffMinimize(MinimizeArgs args) {
+  return ArgMinDuffMixin{}(args);
+}
+
 std::vector<KMer> ArgMinUnrolledMinimize(MinimizeArgs args) {
   return ArgMinUnrolledMixin{}(args);
 }
@@ -520,6 +556,10 @@ std::vector<KMer> ArgMinRecoveryMinimize(MinimizeArgs args) {
 
 std::vector<KMer> ArgMinRecoveryEveMinimize(MinimizeArgs args) {
   return ArgMinEveRecoveryMixin{}(args);
+}
+
+std::vector<KMer> ArgMinRecoveryDuffMinimize(MinimizeArgs args) {
+  return ArgMinDuffRecoveryMixin{}(args);
 }
 
 std::vector<KMer> ArgMinRecoveryUnrolledMinimize(MinimizeArgs args) {
