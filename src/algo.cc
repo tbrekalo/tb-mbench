@@ -464,34 +464,42 @@ struct ArgMinRolling {
   }
 };
 
-struct SplitWindow {
-  std::vector<KMer> operator()(MinimizeArgs args,
-                               std::vector<KMer::value_type> hashes) const {
+class SplitWindow {
+  std::vector<KMer> impl(MinimizeArgs args,
+                         std::vector<KMer::value_type> hashes) const {
     if (hashes.empty()) {
       return {};
     }
 
     std::vector<KMer> dst(hashes.size());
-    std::vector<std::int64_t> lhs, rhs;
-    std::int64_t idx = 0, rhs_min = 0;
+    std::int64_t idx = 0;
+
+    std::vector<std::int64_t> lhs(args.window_length + 1);
+    std::int64_t lhs_idx = 1;
+
+    std::vector<std::int64_t> rhs(args.window_length + 1);
+    std::int64_t rhs_idx = 1, rhs_min = 0;
+
+    auto shift_stacks = [&] {
+      for (; rhs_idx > 1; --rhs_idx) {
+        auto cond = lhs_idx == 1 ||
+                    hashes[rhs[rhs_idx - 1]] <= hashes[lhs[lhs_idx - 1]];
+        lhs[lhs_idx++] =
+            cond * rhs[rhs_idx - 1] + (1 - cond) * lhs[lhs_idx - 1];
+      }
+    };
 
     auto push_back = [&](std::int64_t i) {
       rhs_min = hashes[i] < hashes[rhs_min] ? i : rhs_min;
-      rhs.push_back(i);
+      rhs[rhs_idx++] = i;
     };
 
     auto pop_front = [&](std::int64_t i) {
-      if (lhs.empty()) {
-        for (; !rhs.empty(); rhs.pop_back()) {
-          if (lhs.empty() || hashes[rhs.back()] <= hashes[lhs.back()]) {
-            lhs.push_back(rhs.back());
-            continue;
-          }
-          lhs.push_back(lhs.back());
-        }
+      if (lhs_idx == 1) {
+        shift_stacks();
         rhs_min = i;
       }
-      lhs.pop_back();
+      --lhs_idx;
     };
 
     for (std::int64_t i = 0;
@@ -501,20 +509,31 @@ struct SplitWindow {
 
     dst[idx++] = KMer(hashes[rhs_min], rhs_min, 0);
     pop_front(args.window_length);
-    for (std::int64_t i = args.window_length; i < hashes.size(); ++i) {
-      push_back(i);
-      auto min_pos = !lhs.empty() && hashes[lhs.back()] <= hashes[rhs_min]
-                         ? lhs.back()
-                         : rhs_min;
-      if (dst[idx - 1].position() != min_pos) {
-        dst[idx++] = KMer(hashes[min_pos], min_pos, 0);
-      }
+    for (std::int64_t i = args.window_length; i < hashes.size();
+         i += args.window_length) {
+      for (std::int64_t j = 0; j < args.window_length && i + j < hashes.size();
+           ++j) {
+        push_back(i + j);
+        auto min_pos =
+            lhs_idx > 1 && hashes[lhs[lhs_idx - 1]] <= hashes[rhs_min]
+                ? lhs[lhs_idx - 1]
+                : rhs_min;
+        if (dst[idx - 1].position() != min_pos) {
+          dst[idx++] = KMer(hashes[min_pos], min_pos, 0);
+        }
 
-      pop_front(i + 1);
+        pop_front(i + j + 1);
+      }
     }
 
     dst.resize(idx);
     return dst;
+  }
+
+ public:
+  std::vector<KMer> operator()(MinimizeArgs args,
+                               std::vector<KMer::value_type> hashes) const {
+    return impl(args, hashes);
   }
 };
 

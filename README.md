@@ -36,28 +36,29 @@ cmake --build build
 - kmer length = 21
 
 ### Figures
+<matplotlib.legend.Legend at 0x7fdfecae4dd0>
 | function                                            |   avg ns per bp |
 |:----------------------------------------------------|----------------:|
-| tb::NaiveMinimize                                   |       241.694   |
-| tb::ArgMinDuffMinimize                              |        28.4622  |
-| tb::RingMinimize                                    |        26.2314  |
-| tb::ArgMinEveMinimize                               |        25.3984  |
-| tb::DequeMinimize                                   |        23.36    |
-| tb::NtHashArgMinMinimize                            |        23.1313  |
-| tb::ArgMinMinimize                                  |        22.5943  |
-| tb::NtHashPrecomputedArgMinMinimize                 |        22.4447  |
-| tb::InplaceMinimize                                 |        20.8296  |
-| tb::SplitWindowMinimize                             |        18.5789  |
-| tb::NtHashPrecomputedArgMinUnrolledMinimize         |        11.6239  |
-| tb::ArgMinUnrolledMinimize                          |        11.4983  |
-| tb::ArgMinRollingMinimize                           |        11.107   |
-| tb::NtHashArgMinRecoveryMinimize                    |        11.0996  |
-| tb::ArgMinRecoveryEveMinimize                       |        10.8627  |
-| tb::NtHashPrecomputedArgMinRecoveryMinimize         |        10.4391  |
-| tb::ArgMinRecoveryMinimize                          |        10.3098  |
-| tb::NtHashPrecomputedArgMinUnrolledRecoveryMinimize |         8.9795  |
-| tb::ArgMinRecoveryDuffMinimize                      |         8.7492  |
-| tb::ArgMinRecoveryUnrolledMinimize                  |         8.74724 |
+| tb::NaiveMinimize                                   |       241.621   |
+| tb::ArgMinDuffMinimize                              |        28.8162  |
+| tb::RingMinimize                                    |        26.2489  |
+| tb::ArgMinEveMinimize                               |        25.3979  |
+| tb::NtHashArgMinMinimize                            |        23.6542  |
+| tb::DequeMinimize                                   |        23.3451  |
+| tb::NtHashPrecomputedArgMinMinimize                 |        23.2418  |
+| tb::ArgMinMinimize                                  |        22.69    |
+| tb::InplaceMinimize                                 |        20.8377  |
+| tb::NtHashPrecomputedArgMinUnrolledMinimize         |        12.0209  |
+| tb::SplitWindowMinimize                             |        11.8228  |
+| tb::ArgMinUnrolledMinimize                          |        11.5503  |
+| tb::NtHashArgMinRecoveryMinimize                    |        11.4736  |
+| tb::ArgMinRecoveryEveMinimize                       |        10.9206  |
+| tb::ArgMinRollingMinimize                           |        10.8241  |
+| tb::ArgMinRecoveryMinimize                          |        10.587   |
+| tb::NtHashPrecomputedArgMinRecoveryMinimize         |        10.5757  |
+| tb::ArgMinRecoveryDuffMinimize                      |         9.14772 |
+| tb::ArgMinRecoveryUnrolledMinimize                  |         8.77331 |
+| tb::NtHashPrecomputedArgMinUnrolledRecoveryMinimize |         8.54623 |
 ![](misc/perf.png)
 
 ## Reference
