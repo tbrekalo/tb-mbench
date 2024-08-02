@@ -10,6 +10,9 @@ struct MinimizeArgs {
   std::int32_t kmer_length;
 };
 
+std::vector<KMer::value_type> NtHash(MinimizeArgs);
+std::vector<KMer::value_type> NtHashOpt(MinimizeArgs);
+
 // Reference naive implementations
 std::vector<KMer> NaiveMinimize(MinimizeArgs);
 

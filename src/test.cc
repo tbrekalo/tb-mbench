@@ -70,3 +70,10 @@ TEST_F(MinimizeTest, SplitWindowVsArgMin) {
 
   EXPECT_EQ(argmin_minimizers, split_minimizers);
 }
+
+TEST_F(MinimizeTest, NthHashRegression) {
+  auto base_hashes = tb::NtHash(args_);
+  auto opt_hashes = tb::NtHashOpt(args_);
+
+  EXPECT_EQ(base_hashes, opt_hashes);
+}

@@ -51,4 +51,8 @@ BENCHMARK_TEMPLATE(BM_Minimize, tb::NtHashRecoveryMinimize)
 // Split window
 BENCHMARK_TEMPLATE(BM_Minimize, tb::SplitWindowMinimize)->ArgsProduct(kArgList);
 
+// NthHash
+BENCHMARK_TEMPLATE(BM_Minimize, tb::NtHash)->ArgsProduct(kArgList);
+BENCHMARK_TEMPLATE(BM_Minimize, tb::NtHashOpt)->ArgsProduct(kArgList);
+
 }  // namespace

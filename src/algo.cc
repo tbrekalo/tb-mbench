@@ -401,6 +401,15 @@ using SplitWindowMixin = ArgMinMixinBase<ThomasWangHasher, SplitWindow>;
 
 }  // namespace
 
+
+std::vector<KMer::value_type> NtHash(MinimizeArgs args) {
+  return NthHasher<nthash<NtHashImpl::kPrecomputed>>{}(args);
+}
+
+std::vector<KMer::value_type> NtHashOpt(MinimizeArgs args) {
+  return NthHasher<nthash<NtHashImpl::kPrecomputed>>{}(args);
+}
+
 // Arg min based implementations
 std::vector<KMer> ArgMinMinimize(MinimizeArgs args) {
   return ArgMinMixin{}(args);
