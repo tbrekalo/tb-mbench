@@ -113,102 +113,6 @@ std::vector<KMer> DequeMinimize(MinimizeArgs args) {
   return dst;
 }
 
-std::vector<KMer> InplaceMinimize(MinimizeArgs args) {
-  std::vector<KMer> dst;
-  if (args.seq.size() < args.window_length + args.kmer_length - 2) {
-    return dst;
-  }
-
-  std::int64_t idx = -1;
-  dst.resize(args.seq.size() - args.kmer_length);
-  auto const mask = calc_mask(args.kmer_length);
-
-  std::int64_t front_idx = 1;
-  std::int64_t back_idx = 1;
-
-  auto push = [&front_idx, &back_idx, &dst](
-                  KMer::value_type hash_value,
-                  KMer::position_type position) -> void {
-    for (; front_idx < back_idx && dst[back_idx - 1].value() > hash_value;
-         --back_idx);
-    dst[back_idx++] = KMer(hash_value, position, 0);
-  };
-
-  auto pop = [&front_idx, &dst,
-              w = args.window_length](KMer::position_type position) {
-    if (dst[front_idx].position() <= position - w) {
-      ++front_idx;
-    }
-  };
-
-  KMer::value_type value;
-  for (std::size_t i = 0; i < args.seq.size(); ++i) {
-    if (i >= args.window_length + args.kmer_length - 1) {
-      pop(i - (args.kmer_length - 1));
-    }
-
-    value = ((value << 2) | args.seq.Code(i)) & mask;
-    if (i >= args.kmer_length - 1) {
-      push(hash(value, mask), i - (args.kmer_length - 1));
-      if (i > args.window_length + args.kmer_length - 2 &&
-          (idx < 0 || dst[idx].position() != dst[front_idx].position())) {
-        if (idx + 1 == front_idx) {
-          std::shift_right(dst.begin() + front_idx++, dst.begin() + ++back_idx,
-                           1);
-        }
-        assert(idx + 1 < front_idx);
-        dst[++idx] = dst[front_idx];
-      }
-    }
-  }
-
-  dst.resize(idx + 1);
-  return dst;
-}
-
-std::vector<KMer> RingMinimize(MinimizeArgs args) {
-  std::vector<KMer> dst;
-  if (args.seq.size() < args.window_length + args.kmer_length - 2) {
-    return dst;
-  }
-
-  dst.reserve(args.seq.size());
-  auto const mask = calc_mask(args.kmer_length);
-  Ring window(args.window_length);
-
-  auto push = [&window](KMer::value_type hash_value,
-                        KMer::position_type position) -> void {
-    while (!window.empty() && window.back().value() > hash_value) {
-      window.pop_back();
-    }
-    window.push(KMer(hash_value, position, 0));
-  };
-
-  auto pop = [&window, w = args.window_length](KMer::position_type position) {
-    if (window.front().position() <= position - w) {
-      window.pop_front();
-    }
-  };
-
-  KMer::value_type value;
-  for (std::size_t i = 0; i < args.seq.size(); ++i) {
-    if (i >= args.window_length + args.kmer_length - 1) {
-      pop(i - (args.kmer_length - 1));
-    }
-
-    value = ((value << 2) | args.seq.Code(i)) & mask;
-    if (i >= args.kmer_length - 1) {
-      push(hash(value, mask), i - (args.kmer_length - 1));
-      if (i > args.window_length + args.kmer_length - 2 &&
-          (dst.empty() || dst.back().position() != window.front().position())) {
-        dst.emplace_back(window.front().value(), window.front().position(), 0);
-      }
-    }
-  }
-
-  return dst;
-}
-
 namespace {
 
 template <class Hasher, class Sampler>
@@ -275,14 +179,6 @@ template <class T>
 concept AMinElement = requires(T lhs, T rhs) {
   { lhs < rhs } -> std::same_as<bool>;
   requires std::copyable<T>;
-};
-
-struct StdMinElement {
-  template <AMinElement T>
-  constexpr std::span<T>::iterator operator()(
-      std::span<T> span) const noexcept {
-    return std::ranges::min_element(span);
-  }
 };
 
 struct PredicationMinElement {
@@ -399,35 +295,6 @@ class UnrolledSampler {
   }
 };
 
-struct ArgMinRolling {
-  std::vector<KMer> operator()(MinimizeArgs args,
-                               std::vector<KMer::value_type> hashes) const {
-    std::vector<KMer> dst(hashes.size());
-    std::int64_t idx = 0, min_pos = std::min_element(
-                                        hashes.begin(),
-                                        hashes.begin() + args.window_length) -
-                                    hashes.begin();
-
-    dst[idx++] = KMer(hashes[min_pos], min_pos, 0);
-    min_pos = std::min_element(hashes.begin() + min_pos + 1,
-                               hashes.begin() + args.window_length) -
-              hashes.begin();
-
-    for (std::int64_t i = args.window_length; i < hashes.size(); ++i) {
-      min_pos = hashes[i] < hashes[min_pos] ? i : min_pos;
-      if (dst[idx - 1].position() > i - args.window_length &&
-          hashes[min_pos] >= dst[idx - 1].value()) {
-        continue;
-      }
-      dst[idx++] = KMer(hashes[min_pos], min_pos, 0);
-      i = min_pos++;
-    }
-
-    dst.resize(idx);
-    return dst;
-  }
-};
-
 class SplitWindow {
   std::vector<KMer> impl(MinimizeArgs args,
                          std::vector<KMer::value_type> hashes) const {
@@ -502,12 +369,10 @@ class SplitWindow {
 };
 
 // Initialize ArgMin samplers
-using StdArgMinSampler = ArgMinSampler<PredicationMinElement>;
 using PredicationArgMinSampler = ArgMinSampler<PredicationMinElement>;
 using UnrolledArgMinSampler = UnrolledSampler<ArgMinSampler>;
 
 // Initialize ArgMinRecovery samplers
-using StdArgMinRecoverySampler = ArgMinRecoverySampler<PredicationMinElement>;
 using PredicationArgMinRecoverySampler =
     ArgMinRecoverySampler<PredicationMinElement>;
 using UnrolledArgMinRecoverySampler = UnrolledSampler<ArgMinRecoverySampler>;
@@ -517,12 +382,6 @@ using ArgMinMixin = ArgMinMixinBase<ThomasWangHasher, PredicationArgMinSampler>;
 using ArgMinUnrolledMixin =
     ArgMinMixinBase<ThomasWangHasher, UnrolledArgMinSampler>;
 // NtHash ArgMin mixins
-using NtHashArgMinMixin =
-    ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kRuntime>>,
-                    PredicationArgMinSampler>;
-using NtHashPrecomputedArgMinMixin =
-    ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kPrecomputed>>,
-                    PredicationArgMinSampler>;
 using NtHashPrecomputedArgMinUnrolledMixin =
     ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kPrecomputed>>,
                     UnrolledArgMinSampler>;
@@ -533,18 +392,9 @@ using ArgMinRecoveryMixin =
 using ArgMinUnrolledRecoveryMixin =
     ArgMinMixinBase<ThomasWangHasher, UnrolledArgMinRecoverySampler>;
 // NtHash ArgMin recovery mixins
-using NtHashArgMinRecoveryMixin =
-    ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kRuntime>>,
-                    PredicationArgMinRecoverySampler>;
-using NtHashPrecomputedArgMinRecoveryMixin =
-    ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kPrecomputed>>,
-                    PredicationArgMinRecoverySampler>;
 using NtHashPrecomputedArgMinUnrolledRecoveryMixin =
     ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kPrecomputed>>,
                     UnrolledArgMinRecoverySampler>;
-
-// ArgMinRolling mixins
-using ArgMinRollingMixin = ArgMinMixinBase<ThomasWangHasher, ArgMinRolling>;
 
 // SplitWindow mixins
 using SplitWindowMixin = ArgMinMixinBase<ThomasWangHasher, SplitWindow>;
@@ -560,11 +410,7 @@ std::vector<KMer> ArgMinUnrolledMinimize(MinimizeArgs args) {
   return ArgMinUnrolledMixin{}(args);
 }
 
-std::vector<KMer> NtHashPrecomputedArgMinMinimize(MinimizeArgs args) {
-  return NtHashPrecomputedArgMinMixin{}(args);
-}
-
-std::vector<KMer> NtHashPrecomputedArgMinUnrolledMinimize(MinimizeArgs args) {
+std::vector<KMer> NtHashArgMinMinimize(MinimizeArgs args) {
   return NtHashPrecomputedArgMinUnrolledMixin{}(args);
 }
 
@@ -577,7 +423,7 @@ std::vector<KMer> ArgMinRecoveryUnrolledMinimize(MinimizeArgs args) {
   return ArgMinUnrolledRecoveryMixin{}(args);
 }
 
-std::vector<KMer> NtHashPrecomputedArgMinUnrolledRecoveryMinimize(
+std::vector<KMer> NtHashRecoveryMinimize(
     MinimizeArgs args) {
   return NtHashPrecomputedArgMinUnrolledRecoveryMixin{}(args);
 }

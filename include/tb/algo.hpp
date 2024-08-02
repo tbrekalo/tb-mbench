@@ -19,12 +19,12 @@ std::vector<KMer> DequeMinimize(MinimizeArgs);
 // Arg min based implementations
 std::vector<KMer> ArgMinMinimize(MinimizeArgs);
 std::vector<KMer> ArgMinUnrolledMinimize(MinimizeArgs);
-std::vector<KMer> NtHashPrecomputedArgMinMinimize(MinimizeArgs);
+std::vector<KMer> NtHashArgMinMinimize(MinimizeArgs);
 
 // Arg min recovery based implementations
 std::vector<KMer> ArgMinRecoveryMinimize(MinimizeArgs);
 std::vector<KMer> ArgMinRecoveryUnrolledMinimize(MinimizeArgs);
-std::vector<KMer> NtHashPrecomputedArgMinUnrolledRecoveryMinimize(MinimizeArgs);
+std::vector<KMer> NtHashRecoveryMinimize(MinimizeArgs);
 
 // Split window
 std::vector<KMer> SplitWindowMinimize(MinimizeArgs);

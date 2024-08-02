@@ -64,7 +64,6 @@ TEST_F(MinimizeTest, ArgMinRecoveryUnrolledVsNaive) {
   EXPECT_EQ(naive_minimizers, argmin_minimizers);
 }
 
-
 TEST_F(MinimizeTest, SplitWindowVsArgMin) {
   auto argmin_minimizers = tb::ArgMinMinimize(args_);
   auto split_minimizers = tb::SplitWindowMinimize(args_);
