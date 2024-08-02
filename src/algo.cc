@@ -7,7 +7,6 @@
 #include <deque>
 #include <span>
 
-#include "eve/module/algo.hpp"
 #include "tb/nthash.hpp"
 #include "tb/ring.hpp"
 
@@ -286,14 +285,6 @@ struct StdMinElement {
   }
 };
 
-struct EveMinElement {
-  template <AMinElement T>
-  constexpr std::span<T>::iterator operator()(
-      std::span<T> span) const noexcept {
-    return eve::algo::min_element(span);
-  }
-};
-
 struct PredicationMinElement {
   template <AMinElement T>
   constexpr std::span<T>::iterator operator()(
@@ -305,33 +296,6 @@ struct PredicationMinElement {
     }
 
     return span.begin() + idx;
-  }
-};
-
-struct DuffMinElement {
-  template <AMinElement T>
-  constexpr std::span<T>::iterator operator()(
-      std::span<T> span) const noexcept {
-    std::int64_t i = span.size(), min_pos = 0;
-    auto min = [span](std::int64_t lhs_idx, std::int64_t rhs_idx) {
-      auto cond = span[lhs_idx] <= span[rhs_idx];
-      return cond * lhs_idx + (1 - cond) * rhs_idx;
-    };
-
-    switch (i % 4) {
-      while (i > 0) {
-        case 0:
-          min_pos = min(--i, min_pos);
-        case 3:
-          min_pos = min(--i, min_pos);
-        case 2:
-          min_pos = min(--i, min_pos);
-        case 1:
-          min_pos = min(--i, min_pos);
-      }
-    }
-
-    return span.begin() + min_pos;
   }
 };
 
@@ -539,23 +503,17 @@ class SplitWindow {
 
 // Initialize ArgMin samplers
 using StdArgMinSampler = ArgMinSampler<PredicationMinElement>;
-using EveArgMinSampler = ArgMinSampler<EveMinElement>;
 using PredicationArgMinSampler = ArgMinSampler<PredicationMinElement>;
-using DuffArgMinSampler = ArgMinSampler<DuffMinElement>;
 using UnrolledArgMinSampler = UnrolledSampler<ArgMinSampler>;
 
 // Initialize ArgMinRecovery samplers
 using StdArgMinRecoverySampler = ArgMinRecoverySampler<PredicationMinElement>;
-using EveArgMinRecoverySampler = ArgMinRecoverySampler<EveMinElement>;
-using DuffArgMinRecoverySampler = ArgMinRecoverySampler<DuffMinElement>;
 using PredicationArgMinRecoverySampler =
     ArgMinRecoverySampler<PredicationMinElement>;
 using UnrolledArgMinRecoverySampler = UnrolledSampler<ArgMinRecoverySampler>;
 
 // ArgMin mixins
 using ArgMinMixin = ArgMinMixinBase<ThomasWangHasher, PredicationArgMinSampler>;
-using ArgMinEveMixin = ArgMinMixinBase<ThomasWangHasher, EveArgMinSampler>;
-using ArgMinDuffMixin = ArgMinMixinBase<ThomasWangHasher, DuffArgMinSampler>;
 using ArgMinUnrolledMixin =
     ArgMinMixinBase<ThomasWangHasher, UnrolledArgMinSampler>;
 // NtHash ArgMin mixins
@@ -572,10 +530,6 @@ using NtHashPrecomputedArgMinUnrolledMixin =
 // ArgMinRecovery mixins
 using ArgMinRecoveryMixin =
     ArgMinMixinBase<ThomasWangHasher, PredicationArgMinRecoverySampler>;
-using ArgMinEveRecoveryMixin =
-    ArgMinMixinBase<ThomasWangHasher, EveArgMinRecoverySampler>;
-using ArgMinDuffRecoveryMixin =
-    ArgMinMixinBase<ThomasWangHasher, DuffArgMinRecoverySampler>;
 using ArgMinUnrolledRecoveryMixin =
     ArgMinMixinBase<ThomasWangHasher, UnrolledArgMinRecoverySampler>;
 // NtHash ArgMin recovery mixins
@@ -602,20 +556,8 @@ std::vector<KMer> ArgMinMinimize(MinimizeArgs args) {
   return ArgMinMixin{}(args);
 }
 
-std::vector<KMer> ArgMinEveMinimize(MinimizeArgs args) {
-  return ArgMinEveMixin{}(args);
-}
-
-std::vector<KMer> ArgMinDuffMinimize(MinimizeArgs args) {
-  return ArgMinDuffMixin{}(args);
-}
-
 std::vector<KMer> ArgMinUnrolledMinimize(MinimizeArgs args) {
   return ArgMinUnrolledMixin{}(args);
-}
-
-std::vector<KMer> NtHashArgMinMinimize(MinimizeArgs args) {
-  return NtHashArgMinMixin{}(args);
 }
 
 std::vector<KMer> NtHashPrecomputedArgMinMinimize(MinimizeArgs args) {
@@ -631,33 +573,13 @@ std::vector<KMer> ArgMinRecoveryMinimize(MinimizeArgs args) {
   return ArgMinRecoveryMixin{}(args);
 }
 
-std::vector<KMer> ArgMinRecoveryEveMinimize(MinimizeArgs args) {
-  return ArgMinEveRecoveryMixin{}(args);
-}
-
-std::vector<KMer> ArgMinRecoveryDuffMinimize(MinimizeArgs args) {
-  return ArgMinDuffRecoveryMixin{}(args);
-}
-
 std::vector<KMer> ArgMinRecoveryUnrolledMinimize(MinimizeArgs args) {
   return ArgMinUnrolledRecoveryMixin{}(args);
-}
-
-std::vector<KMer> NtHashArgMinRecoveryMinimize(MinimizeArgs args) {
-  return NtHashArgMinRecoveryMixin{}(args);
-}
-
-std::vector<KMer> NtHashPrecomputedArgMinRecoveryMinimize(MinimizeArgs args) {
-  return NtHashPrecomputedArgMinRecoveryMixin{}(args);
 }
 
 std::vector<KMer> NtHashPrecomputedArgMinUnrolledRecoveryMinimize(
     MinimizeArgs args) {
   return NtHashPrecomputedArgMinUnrolledRecoveryMixin{}(args);
-}
-
-std::vector<KMer> ArgMinRollingMinimize(MinimizeArgs args) {
-  return ArgMinRollingMixin{}(args);
 }
 
 std::vector<KMer> SplitWindowMinimize(MinimizeArgs args) {

@@ -39,26 +39,15 @@ cmake --build build
 <matplotlib.legend.Legend at 0x7fdfecae4dd0>
 | function                                            |   avg ns per bp |
 |:----------------------------------------------------|----------------:|
-| tb::NaiveMinimize                                   |       241.621   |
-| tb::ArgMinDuffMinimize                              |        28.8162  |
-| tb::RingMinimize                                    |        26.2489  |
-| tb::ArgMinEveMinimize                               |        25.3979  |
-| tb::NtHashArgMinMinimize                            |        23.6542  |
-| tb::DequeMinimize                                   |        23.3451  |
-| tb::NtHashPrecomputedArgMinMinimize                 |        23.2418  |
-| tb::ArgMinMinimize                                  |        22.69    |
-| tb::InplaceMinimize                                 |        20.8377  |
-| tb::NtHashPrecomputedArgMinUnrolledMinimize         |        12.0209  |
-| tb::SplitWindowMinimize                             |        11.8228  |
-| tb::ArgMinUnrolledMinimize                          |        11.5503  |
-| tb::NtHashArgMinRecoveryMinimize                    |        11.4736  |
-| tb::ArgMinRecoveryEveMinimize                       |        10.9206  |
-| tb::ArgMinRollingMinimize                           |        10.8241  |
-| tb::ArgMinRecoveryMinimize                          |        10.587   |
-| tb::NtHashPrecomputedArgMinRecoveryMinimize         |        10.5757  |
-| tb::ArgMinRecoveryDuffMinimize                      |         9.14772 |
-| tb::ArgMinRecoveryUnrolledMinimize                  |         8.77331 |
-| tb::NtHashPrecomputedArgMinUnrolledRecoveryMinimize |         8.54623 |
+| tb::NaiveMinimize                                   |       241.507   |
+| tb::DequeMinimize                                   |        23.421   |
+| tb::NtHashPrecomputedArgMinMinimize                 |        23.2768  |
+| tb::ArgMinMinimize                                  |        22.8963  |
+| tb::SplitWindowMinimize                             |        11.835   |
+| tb::ArgMinUnrolledMinimize                          |        11.6698  |
+| tb::ArgMinRecoveryMinimize                          |        10.5446  |
+| tb::NtHashPrecomputedArgMinUnrolledRecoveryMinimize |         8.37332 |
+| tb::ArgMinRecoveryUnrolledMinimize                  |         8.32952 |
 ![](misc/perf.png)
 
 ## Reference

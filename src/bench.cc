@@ -32,41 +32,21 @@ BENCHMARK_TEMPLATE(BM_Minimize, tb::NaiveMinimize)->ArgsProduct(kArgList);
 
 // Deque based
 BENCHMARK_TEMPLATE(BM_Minimize, tb::DequeMinimize)->ArgsProduct(kArgList);
-BENCHMARK_TEMPLATE(BM_Minimize, tb::InplaceMinimize)->ArgsProduct(kArgList);
-BENCHMARK_TEMPLATE(BM_Minimize, tb::RingMinimize)->ArgsProduct(kArgList);
 
 // Arg min based
 BENCHMARK_TEMPLATE(BM_Minimize, tb::ArgMinMinimize)->ArgsProduct(kArgList);
-BENCHMARK_TEMPLATE(BM_Minimize, tb::ArgMinEveMinimize)->ArgsProduct(kArgList);
-BENCHMARK_TEMPLATE(BM_Minimize, tb::ArgMinDuffMinimize)->ArgsProduct(kArgList);
 BENCHMARK_TEMPLATE(BM_Minimize, tb::ArgMinUnrolledMinimize)
     ->ArgsProduct(kArgList);
-BENCHMARK_TEMPLATE(BM_Minimize, tb::NtHashArgMinMinimize)
-    ->ArgsProduct(kArgList);
 BENCHMARK_TEMPLATE(BM_Minimize, tb::NtHashPrecomputedArgMinMinimize)
-    ->ArgsProduct(kArgList);
-BENCHMARK_TEMPLATE(BM_Minimize, tb::NtHashPrecomputedArgMinUnrolledMinimize)
     ->ArgsProduct(kArgList);
 
 // Arg min recovery based
 BENCHMARK_TEMPLATE(BM_Minimize, tb::ArgMinRecoveryMinimize)
     ->ArgsProduct(kArgList);
-BENCHMARK_TEMPLATE(BM_Minimize, tb::ArgMinRecoveryEveMinimize)
-    ->ArgsProduct(kArgList);
-BENCHMARK_TEMPLATE(BM_Minimize, tb::ArgMinRecoveryDuffMinimize)
-    ->ArgsProduct(kArgList);
 BENCHMARK_TEMPLATE(BM_Minimize, tb::ArgMinRecoveryUnrolledMinimize)
-    ->ArgsProduct(kArgList);
-BENCHMARK_TEMPLATE(BM_Minimize, tb::NtHashArgMinRecoveryMinimize)
-    ->ArgsProduct(kArgList);
-BENCHMARK_TEMPLATE(BM_Minimize, tb::NtHashPrecomputedArgMinRecoveryMinimize)
     ->ArgsProduct(kArgList);
 BENCHMARK_TEMPLATE(BM_Minimize,
                    tb::NtHashPrecomputedArgMinUnrolledRecoveryMinimize)
-    ->ArgsProduct(kArgList);
-
-// Arg min rolling based
-BENCHMARK_TEMPLATE(BM_Minimize, tb::ArgMinRollingMinimize)
     ->ArgsProduct(kArgList);
 
 // Split window
