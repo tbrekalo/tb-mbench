@@ -8,7 +8,6 @@
 #include <span>
 
 #include "tb/nthash.hpp"
-#include "tb/ring.hpp"
 
 namespace tb {
 
