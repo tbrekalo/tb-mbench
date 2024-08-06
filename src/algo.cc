@@ -148,7 +148,7 @@ struct ThomasWangHasher {
 };
 
 template <auto roll_fn>
-struct NthHasher {
+struct NtHasher {
   std::vector<KMer::value_type> operator()(MinimizeArgs args) const {
     if (args.seq.size() < args.window_length + args.kmer_length - 2) {
       return {};
@@ -164,13 +164,85 @@ struct NthHasher {
                                          1);
     hashes[0] = value;
 
-    for (std::size_t i = args.kmer_length; i < args.seq.size(); ++i) {
+    for (std::int64_t i = args.kmer_length; i < args.seq.size(); ++i) {
       value = roll_fn(value, args.seq.Code(i - args.kmer_length),
                       args.seq.Code(i), args.kmer_length);
-      hashes[i - args.kmer_length] = value;
+      hashes[i - args.kmer_length + 1] = value;
     }
 
     return hashes;
+  }
+};
+
+/*
+ * n = 10
+ * k = 3
+ *
+ * mid = 5
+ *
+ * lhs-kmers:
+ *  [0, 1, 2],
+ *  [1, 2, 3],
+ *  [2, 3, 4],
+ *  [3, 4, 5],
+ *
+ * rhs-kmers:
+ *  [4, 5, 6],
+ *  [5, 6, 7],
+ *  [6, 7, 8],
+ *  [7, 8, 9],
+ *
+ * calculations:
+ *  n-kmers = n - k + 1
+ *  mid = n-kmers / 2
+ *  eg:
+ *    (10 - 3 + 1) / 2 = 4
+ *    (11 - 3 + 1) / 2 = 4
+ * */
+struct NtHasherOpt {
+  std::vector<KMer::value_type> operator()(MinimizeArgs args) const {
+    auto roll_fn = nthash<NtHashImpl::kPrecomputed>;
+    if (args.seq.size() < 2 * args.kmer_length) {
+      return NtHasher<roll_fn>{}(args);
+    }
+
+    std::int64_t n_kmers = args.seq.size() - args.kmer_length + 1;
+    std::int64_t mid = n_kmers / 2;
+    std::int64_t i0 = 0, i1 = mid;
+
+    std::vector<KMer::value_type> dst(n_kmers);
+    KMer::value_type v0 = srol(kNtHashSeeds[args.seq.Code(i0++)],
+                               args.kmer_length - 1),
+                     v1 = srol(kNtHashSeeds[args.seq.Code(i1++)],
+                               args.kmer_length - 1);
+
+    for (; i0 < args.kmer_length; ++i0, ++i1) {
+      v0 ^= srol(kNtHashSeeds[args.seq.Code(i0)], args.kmer_length - (i0 + 1));
+      v1 ^= srol(kNtHashSeeds[args.seq.Code(i1)], args.kmer_length - (i0 + 1));
+    }
+
+    std::int64_t idx0 = 0, idx1 = mid;
+    dst[idx0++] = v0;
+    dst[idx1++] = v1;
+
+    for (; i0 - args.kmer_length + 1 < mid && i1 < args.seq.size();
+         ++i0, ++i1) {
+      v0 = roll_fn(v0, args.seq.Code(i0 - args.kmer_length), args.seq.Code(i0),
+                   args.kmer_length);
+      v1 = roll_fn(v1, args.seq.Code(i1 - args.kmer_length), args.seq.Code(i1),
+                   args.kmer_length);
+
+      dst[idx0++] = v0;
+      dst[idx1++] = v1;
+    }
+
+    for (; i1 < args.seq.size(); ++i1) {
+      v1 = roll_fn(v1, args.seq.Code(i1 - args.kmer_length), args.seq.Code(i1),
+                   args.kmer_length);
+      dst[idx1++] = v1;
+    }
+
+    return dst;
   }
 };
 
@@ -382,7 +454,7 @@ using ArgMinUnrolledMixin =
     ArgMinMixinBase<ThomasWangHasher, UnrolledArgMinSampler>;
 // NtHash ArgMin mixins
 using NtHashPrecomputedArgMinUnrolledMixin =
-    ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kPrecomputed>>,
+    ArgMinMixinBase<NtHasher<nthash<NtHashImpl::kPrecomputed>>,
                     UnrolledArgMinSampler>;
 
 // ArgMinRecovery mixins
@@ -392,7 +464,7 @@ using ArgMinUnrolledRecoveryMixin =
     ArgMinMixinBase<ThomasWangHasher, UnrolledArgMinRecoverySampler>;
 // NtHash ArgMin recovery mixins
 using NtHashPrecomputedArgMinUnrolledRecoveryMixin =
-    ArgMinMixinBase<NthHasher<nthash<NtHashImpl::kPrecomputed>>,
+    ArgMinMixinBase<NtHasher<nthash<NtHashImpl::kPrecomputed>>,
                     UnrolledArgMinRecoverySampler>;
 
 // SplitWindow mixins
@@ -400,13 +472,12 @@ using SplitWindowMixin = ArgMinMixinBase<ThomasWangHasher, SplitWindow>;
 
 }  // namespace
 
-
 std::vector<KMer::value_type> NtHash(MinimizeArgs args) {
-  return NthHasher<nthash<NtHashImpl::kPrecomputed>>{}(args);
+  return NtHasher<nthash<NtHashImpl::kPrecomputed>>{}(args);
 }
 
 std::vector<KMer::value_type> NtHashOpt(MinimizeArgs args) {
-  return NthHasher<nthash<NtHashImpl::kPrecomputed>>{}(args);
+  return NtHasherOpt{}(args);
 }
 
 // Arg min based implementations
@@ -431,8 +502,7 @@ std::vector<KMer> ArgMinRecoveryUnrolledMinimize(MinimizeArgs args) {
   return ArgMinUnrolledRecoveryMixin{}(args);
 }
 
-std::vector<KMer> NtHashRecoveryMinimize(
-    MinimizeArgs args) {
+std::vector<KMer> NtHashRecoveryMinimize(MinimizeArgs args) {
   return NtHashPrecomputedArgMinUnrolledRecoveryMixin{}(args);
 }
 
