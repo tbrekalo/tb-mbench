@@ -98,18 +98,22 @@ template <std::size_t N>
 inline constexpr auto nthash_bulk = [] [[using gnu: always_inline, pure, hot]] (
                                         Reg<N> const& prev, Reg<N>& out,
                                         Reg<N>& in, std::uint64_t k) -> Reg<N> {
+  auto kPrecomputedCasted = reinterpret_cast<__m256i*>(
+      const_cast<std::uint64_t*>(detail::kPrecomputed[k].data()));
+  auto kSeedsCasted = reinterpret_cast<__m256i*>(
+      const_cast<std::uint64_t*>(kNtHashSeeds.data()));
+
   Reg<N> dst;
   for (std::int64_t i = 0; i < prev.size(); ++i) {
     dst[i] = srol(prev[i]);
   }
 
-  for (std::int64_t i = 0; i < out.size(); ++i) {
-    out[i] = detail::kPrecomputed[k][out[i]];
-  }
-
-  for (std::int64_t i = 0; i < out.size(); ++i) {
-    in[i] = kNtHashSeeds[in[i]];
-  }
+  *reinterpret_cast<__m256i*>(out.data()) = _mm256_i64gather_epi64(
+      kPrecomputedCasted, *reinterpret_cast<__m256i*>(out.data()),
+      sizeof(std::int64_t));
+  *reinterpret_cast<__m256i*>(in.data()) = _mm256_i64gather_epi64(
+      kSeedsCasted, *reinterpret_cast<__m256i*>(in.data()),
+      sizeof(std::int64_t));
 
   *reinterpret_cast<__m256i*>(dst.data()) =
       _mm256_xor_si256(*reinterpret_cast<__m256i*>(dst.data()),

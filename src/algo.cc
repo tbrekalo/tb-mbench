@@ -176,6 +176,7 @@ struct NtHasher {
 class NtHasherOpt {
   template <std::size_t N>
   std::vector<KMer::value_type> impl(MinimizeArgs args) const {
+    using RegType = Reg<N>;
     if (args.seq.size() < N * args.kmer_length) {
       return NtHasher{}(args);
     }
@@ -207,7 +208,7 @@ class NtHasherOpt {
 
     auto idx = indices;
     auto values = [args, &indices] {
-      std::array<KMer::value_type, N> values;
+      RegType values;
       for (std::int64_t i = 0; i < N; ++i) {
         values[i] = 0;
       }
@@ -225,28 +226,25 @@ class NtHasherOpt {
       dst[idx[i]++] = values[i];
     }
 
-    using RegType = Reg<N>;
     while (indices.front() - args.kmer_length + 1 < pivots.front()) {
-      RegType v, base_out, base_in;
+      RegType base_out, base_in;
       for (std::int64_t i = 0; i < N; ++i) {
-        v[i] = values[i];
         base_out[i] = args.seq.Code(indices[i] - args.kmer_length);
         base_in[i] = args.seq.Code(indices[i]);
       }
 
-      v = nthash_bulk<N>(v, base_out, base_in, args.kmer_length);
+      values = nthash_bulk<N>(values, base_out, base_in, args.kmer_length);
       for (std::int64_t i = 0; i < N; ++i) {
-        values[i] = v[i];
         dst[idx[i]++] = values[i];
         ++indices[i];
       }
     }
 
     for (; indices.back() < args.seq.size(); ++indices.back()) {
-      values.back() = nthash(values.back(),
+      values[N - 1] = nthash(values[N - 1],
                              args.seq.Code(indices.back() - args.kmer_length),
                              args.seq.Code(indices.back()), args.kmer_length);
-      dst[idx.back()++] = values.back();
+      dst[idx.back()++] = values[N - 1];
     }
 
     return dst;
