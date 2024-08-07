@@ -1,8 +1,12 @@
 #pragma once
+#include <immintrin.h>
+
 #include <array>
 #include <cstdint>
 #include <limits>
+#include <utility>
 
+#include "immintrin.h"
 #include "tb/data.hpp"
 
 namespace tb {
@@ -70,22 +74,51 @@ inline constexpr auto kPrecomputed = [] consteval {
 
 }  // namespace detail
 
-enum class NtHashImpl { kRuntime, kPrecomputed };
+inline constexpr auto nthash = [] [[using gnu: always_inline, pure, hot]]
+                               (KMer::value_type prev, std::uint8_t base_out,
+                                std::uint8_t base_in, std::uint64_t k) {
+                                 return srol(prev) ^
+                                        detail::kPrecomputed[k][base_out] ^
+                                        kNtHashSeeds[base_in];
+                               };
+template <std::size_t N>
+class alignas(64) Reg {
+  std::int64_t data_[N];
 
-template <NtHashImpl impl>
-inline constexpr auto nthash =
-    [] [[using gnu: always_inline, pure, hot]]
-    (KMer::value_type prev, std::uint8_t base_out, std::uint8_t base_in,
-     std::uint64_t k) {
-      constexpr auto srol_out = [](std::uint8_t base_out, std::uint64_t k) {
-        if constexpr (impl == NtHashImpl::kPrecomputed) {
-          return detail::kPrecomputed[k][base_out];
-        } else {
-          return srol(kNtHashSeeds[base_out], k);
-        }
-      };
+ public:
+  template <class Self>
+  decltype(auto) operator[](this Self&& self, std::size_t i) {
+    return std::forward_like<Self>(self.data_[i]);
+  }
+  std::int64_t* data() { return reinterpret_cast<std::int64_t*>(&data_); }
+  std::size_t size() const noexcept { return 4; }
+};
 
-      return srol(prev) ^ srol_out(base_out, k) ^ kNtHashSeeds[base_in];
-    };
+template <std::size_t N>
+inline constexpr auto nthash_bulk = [] [[using gnu: always_inline, pure, hot]] (
+                                        Reg<N> const& prev, Reg<N>& out,
+                                        Reg<N>& in, std::uint64_t k) -> Reg<N> {
+  Reg<N> dst;
+  for (std::int64_t i = 0; i < prev.size(); ++i) {
+    dst[i] = srol(prev[i]);
+  }
+
+  for (std::int64_t i = 0; i < out.size(); ++i) {
+    out[i] = detail::kPrecomputed[k][out[i]];
+  }
+
+  for (std::int64_t i = 0; i < out.size(); ++i) {
+    in[i] = kNtHashSeeds[in[i]];
+  }
+
+  *reinterpret_cast<__m256i*>(dst.data()) =
+      _mm256_xor_si256(*reinterpret_cast<__m256i*>(dst.data()),
+                       *reinterpret_cast<__m256i*>(out.data()));
+  *reinterpret_cast<__m256i*>(dst.data()) =
+      _mm256_xor_si256(*reinterpret_cast<__m256i*>(dst.data()),
+                       *reinterpret_cast<__m256i*>(in.data()));
+
+  return dst;
+};
 
 }  // namespace tb

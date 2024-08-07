@@ -147,7 +147,6 @@ struct ThomasWangHasher {
   }
 };
 
-template <auto roll_fn>
 struct NtHasher {
   std::vector<KMer::value_type> operator()(MinimizeArgs args) const {
     if (args.seq.size() < args.window_length + args.kmer_length - 2) {
@@ -165,8 +164,8 @@ struct NtHasher {
     hashes[0] = value;
 
     for (std::int64_t i = args.kmer_length; i < args.seq.size(); ++i) {
-      value = roll_fn(value, args.seq.Code(i - args.kmer_length),
-                      args.seq.Code(i), args.kmer_length);
+      value = nthash(value, args.seq.Code(i - args.kmer_length),
+                     args.seq.Code(i), args.kmer_length);
       hashes[i - args.kmer_length + 1] = value;
     }
 
@@ -177,9 +176,8 @@ struct NtHasher {
 class NtHasherOpt {
   template <std::size_t N>
   std::vector<KMer::value_type> impl(MinimizeArgs args) const {
-    auto roll_fn = nthash<NtHashImpl::kPrecomputed>;
     if (args.seq.size() < N * args.kmer_length) {
-      return NtHasher<roll_fn>{}(args);
+      return NtHasher{}(args);
     }
 
     std::int64_t n_kmers = args.seq.size() - args.kmer_length + 1;
@@ -227,20 +225,27 @@ class NtHasherOpt {
       dst[idx[i]++] = values[i];
     }
 
+    using RegType = Reg<N>;
     while (indices.front() - args.kmer_length + 1 < pivots.front()) {
+      RegType v, base_out, base_in;
       for (std::int64_t i = 0; i < N; ++i) {
-        values[i] =
-            roll_fn(values[i], args.seq.Code(indices[i] - args.kmer_length),
-                    args.seq.Code(indices[i]), args.kmer_length);
+        v[i] = values[i];
+        base_out[i] = args.seq.Code(indices[i] - args.kmer_length);
+        base_in[i] = args.seq.Code(indices[i]);
+      }
+
+      v = nthash_bulk<N>(v, base_out, base_in, args.kmer_length);
+      for (std::int64_t i = 0; i < N; ++i) {
+        values[i] = v[i];
         dst[idx[i]++] = values[i];
         ++indices[i];
       }
     }
 
     for (; indices.back() < args.seq.size(); ++indices.back()) {
-      values.back() = roll_fn(values.back(),
-                              args.seq.Code(indices.back() - args.kmer_length),
-                              args.seq.Code(indices.back()), args.kmer_length);
+      values.back() = nthash(values.back(),
+                             args.seq.Code(indices.back() - args.kmer_length),
+                             args.seq.Code(indices.back()), args.kmer_length);
       dst[idx.back()++] = values.back();
     }
 
@@ -461,8 +466,7 @@ using ArgMinUnrolledMixin =
     ArgMinMixinBase<ThomasWangHasher, UnrolledArgMinSampler>;
 // NtHash ArgMin mixins
 using NtHashPrecomputedArgMinUnrolledMixin =
-    ArgMinMixinBase<NtHasher<nthash<NtHashImpl::kPrecomputed>>,
-                    UnrolledArgMinSampler>;
+    ArgMinMixinBase<NtHasher, UnrolledArgMinSampler>;
 
 // ArgMinRecovery mixins
 using ArgMinRecoveryMixin =
@@ -471,8 +475,7 @@ using ArgMinUnrolledRecoveryMixin =
     ArgMinMixinBase<ThomasWangHasher, UnrolledArgMinRecoverySampler>;
 // NtHash ArgMin recovery mixins
 using NtHashPrecomputedArgMinUnrolledRecoveryMixin =
-    ArgMinMixinBase<NtHasher<nthash<NtHashImpl::kPrecomputed>>,
-                    UnrolledArgMinRecoverySampler>;
+    ArgMinMixinBase<NtHasher, UnrolledArgMinRecoverySampler>;
 
 // SplitWindow mixins
 using SplitWindowMixin = ArgMinMixinBase<ThomasWangHasher, SplitWindow>;
@@ -480,7 +483,7 @@ using SplitWindowMixin = ArgMinMixinBase<ThomasWangHasher, SplitWindow>;
 }  // namespace
 
 std::vector<KMer::value_type> NtHash(MinimizeArgs args) {
-  return NtHasher<nthash<NtHashImpl::kPrecomputed>>{}(args);
+  return NtHasher{}(args);
 }
 
 std::vector<KMer::value_type> NtHashOpt(MinimizeArgs args) {

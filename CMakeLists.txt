@@ -40,8 +40,8 @@ target_include_directories(lib PUBLIC include)
 target_compile_options(
   lib
   PUBLIC $<$<CONFIG:Debug,RelWithDebInfo>:-fsanitize=address
-         -fsanitize=undefined -fno-omit-frame-pointer>
-         $<$<CONFIG:Release>:-march=native> $<$<CONFIG:Release>:-ffast-math>)
+         -fsanitize=undefined -fno-omit-frame-pointer -march=native>
+         $<$<CONFIG:Release>:-march=native -ffast-math>)
 target_link_options(
   lib PUBLIC $<$<CONFIG:Debug,RelWithDebInfo>:-fsanitize=address
   -fsanitize=undefined>)
