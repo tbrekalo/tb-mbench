@@ -1,6 +1,6 @@
 {
   "context": {
-    "date": "2024-08-02T19:17:24+02:00",
+    "date": "2024-08-07T22:19:54+02:00",
     "host_name": "odin",
     "executable": "./build/bin/bench",
     "num_cpus": 14,
@@ -32,7 +32,7 @@
         "num_sharing": 14
       }
     ],
-    "load_avg": [0.193848,0.258789,0.174316],
+    "load_avg": [0.236816,0.283691,0.216309],
     "library_version": "v1.8.4",
     "library_build_type": "release",
     "json_schema_version": 1
@@ -48,8 +48,8 @@
       "repetition_index": 0,
       "threads": 1,
       "iterations": 3,
-      "real_time": 2.4213691630090275e+08,
-      "cpu_time": 2.4213127400000000e+08,
+      "real_time": 2.4166109506040812e+08,
+      "cpu_time": 2.4165332500000000e+08,
       "time_unit": "ns"
     },
     {
@@ -61,9 +61,9 @@
       "repetitions": 1,
       "repetition_index": 0,
       "threads": 1,
-      "iterations": 30,
-      "real_time": 2.3362629472588498e+07,
-      "cpu_time": 2.3362553133333318e+07,
+      "iterations": 29,
+      "real_time": 2.4010300780807074e+07,
+      "cpu_time": 2.4009721344827611e+07,
       "time_unit": "ns"
     },
     {
@@ -76,8 +76,8 @@
       "repetition_index": 0,
       "threads": 1,
       "iterations": 31,
-      "real_time": 2.2493336860451005e+07,
-      "cpu_time": 2.2493529387096729e+07,
+      "real_time": 2.2695096104495950e+07,
+      "cpu_time": 2.2694786935483851e+07,
       "time_unit": "ns"
     },
     {
@@ -90,22 +90,22 @@
       "repetition_index": 0,
       "threads": 1,
       "iterations": 61,
-      "real_time": 1.1486661582269141e+07,
-      "cpu_time": 1.1486853131147526e+07,
+      "real_time": 1.1463929975374801e+07,
+      "cpu_time": 1.1463745967213096e+07,
       "time_unit": "ns"
     },
     {
-      "name": "BM_Minimize<tb::NtHashArgMinMinimize>/1000000",
+      "name": "BM_Minimize<tb::NtHashArgMinUnrolledMinimize>/1000000",
       "family_index": 4,
       "per_family_instance_index": 0,
-      "run_name": "BM_Minimize<tb::NtHashArgMinMinimize>/1000000",
+      "run_name": "BM_Minimize<tb::NtHashArgMinUnrolledMinimize>/1000000",
       "run_type": "iteration",
       "repetitions": 1,
       "repetition_index": 0,
       "threads": 1,
-      "iterations": 60,
-      "real_time": 1.1619548577194413e+07,
-      "cpu_time": 1.1619702483333247e+07,
+      "iterations": 65,
+      "real_time": 1.0817348921241669e+07,
+      "cpu_time": 1.0817343692307727e+07,
       "time_unit": "ns"
     },
     {
@@ -118,8 +118,8 @@
       "repetition_index": 0,
       "threads": 1,
       "iterations": 66,
-      "real_time": 1.0514474262229420e+07,
-      "cpu_time": 1.0514457090909109e+07,
+      "real_time": 1.0493976437966481e+07,
+      "cpu_time": 1.0494203909090962e+07,
       "time_unit": "ns"
     },
     {
@@ -131,23 +131,23 @@
       "repetitions": 1,
       "repetition_index": 0,
       "threads": 1,
-      "iterations": 81,
-      "real_time": 8.6053105036693588e+06,
-      "cpu_time": 8.6055139876542483e+06,
+      "iterations": 82,
+      "real_time": 8.5587975875724386e+06,
+      "cpu_time": 8.5587374390243553e+06,
       "time_unit": "ns"
     },
     {
-      "name": "BM_Minimize<tb::NtHashRecoveryMinimize>/1000000",
+      "name": "BM_Minimize<tb::NtHashRecoveryUnrolledMinimize>/1000000",
       "family_index": 7,
       "per_family_instance_index": 0,
-      "run_name": "BM_Minimize<tb::NtHashRecoveryMinimize>/1000000",
+      "run_name": "BM_Minimize<tb::NtHashRecoveryUnrolledMinimize>/1000000",
       "run_type": "iteration",
       "repetitions": 1,
       "repetition_index": 0,
       "threads": 1,
-      "iterations": 80,
-      "real_time": 8.7323575571645051e+06,
-      "cpu_time": 8.7325988125000484e+06,
+      "iterations": 88,
+      "real_time": 7.9087798420170490e+06,
+      "cpu_time": 7.9087900454545477e+06,
       "time_unit": "ns"
     },
     {
@@ -159,9 +159,9 @@
       "repetitions": 1,
       "repetition_index": 0,
       "threads": 1,
-      "iterations": 44,
-      "real_time": 1.6037560576065021e+07,
-      "cpu_time": 1.6037790227272667e+07,
+      "iterations": 42,
+      "real_time": 1.6607302551468214e+07,
+      "cpu_time": 1.6604681952381063e+07,
       "time_unit": "ns"
     }
   ]

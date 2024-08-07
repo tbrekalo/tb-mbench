@@ -39,15 +39,15 @@ cmake --build build
 <matplotlib.legend.Legend at 0x7fdfecae4dd0>
 | function                           |   avg ns per bp |
 |:-----------------------------------|----------------:|
-| tb::NaiveMinimize                  |       242.131   |
-| tb::DequeMinimize                  |        23.3626  |
-| tb::ArgMinMinimize                 |        22.4935  |
-| tb::SplitWindowMinimize            |        16.0378  |
-| tb::NtHashArgMinMinimize           |        11.6197  |
-| tb::ArgMinUnrolledMinimize         |        11.4869  |
-| tb::ArgMinRecoveryMinimize         |        10.5145  |
-| tb::NtHashRecoveryMinimize         |         8.7326  |
-| tb::ArgMinRecoveryUnrolledMinimize |         8.60551 |
+| tb::NaiveMinimize                  |       241.653   |
+| tb::DequeMinimize                  |        24.0097  |
+| tb::ArgMinMinimize                 |        22.6948  |
+| tb::SplitWindowMinimize            |        16.6047  |
+| tb::ArgMinUnrolledMinimize         |        11.4637  |
+| tb::NtHashArgMinUnrolledMinimize   |        10.8173  |
+| tb::ArgMinRecoveryMinimize         |        10.4942  |
+| tb::ArgMinRecoveryUnrolledMinimize |         8.55874 |
+| tb::NtHashRecoveryUnrolledMinimize |         7.90879 |
 ![](misc/perf.png)
 
 ## Reference

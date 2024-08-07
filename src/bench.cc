@@ -37,7 +37,7 @@ BENCHMARK_TEMPLATE(BM_Minimize, tb::DequeMinimize)->ArgsProduct(kArgList);
 BENCHMARK_TEMPLATE(BM_Minimize, tb::ArgMinMinimize)->ArgsProduct(kArgList);
 BENCHMARK_TEMPLATE(BM_Minimize, tb::ArgMinUnrolledMinimize)
     ->ArgsProduct(kArgList);
-BENCHMARK_TEMPLATE(BM_Minimize, tb::NtHashArgMinMinimize)
+BENCHMARK_TEMPLATE(BM_Minimize, tb::NtHashArgMinUnrolledMinimize)
     ->ArgsProduct(kArgList);
 
 // Arg min recovery based
@@ -45,7 +45,7 @@ BENCHMARK_TEMPLATE(BM_Minimize, tb::ArgMinRecoveryMinimize)
     ->ArgsProduct(kArgList);
 BENCHMARK_TEMPLATE(BM_Minimize, tb::ArgMinRecoveryUnrolledMinimize)
     ->ArgsProduct(kArgList);
-BENCHMARK_TEMPLATE(BM_Minimize, tb::NtHashRecoveryMinimize)
+BENCHMARK_TEMPLATE(BM_Minimize, tb::NtHashRecoveryUnrolledMinimize)
     ->ArgsProduct(kArgList);
 
 // Split window

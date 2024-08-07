@@ -463,8 +463,8 @@ using ArgMinMixin = ArgMinMixinBase<ThomasWangHasher, PredicationArgMinSampler>;
 using ArgMinUnrolledMixin =
     ArgMinMixinBase<ThomasWangHasher, UnrolledArgMinSampler>;
 // NtHash ArgMin mixins
-using NtHashPrecomputedArgMinUnrolledMixin =
-    ArgMinMixinBase<NtHasher, UnrolledArgMinSampler>;
+using NtHashArgMinUnrolledMixin =
+    ArgMinMixinBase<NtHasherOpt, UnrolledArgMinSampler>;
 
 // ArgMinRecovery mixins
 using ArgMinRecoveryMixin =
@@ -472,8 +472,8 @@ using ArgMinRecoveryMixin =
 using ArgMinUnrolledRecoveryMixin =
     ArgMinMixinBase<ThomasWangHasher, UnrolledArgMinRecoverySampler>;
 // NtHash ArgMin recovery mixins
-using NtHashPrecomputedArgMinUnrolledRecoveryMixin =
-    ArgMinMixinBase<NtHasher, UnrolledArgMinRecoverySampler>;
+using NtHashArgMinUnrolledRecoveryMixin =
+    ArgMinMixinBase<NtHasherOpt, UnrolledArgMinRecoverySampler>;
 
 // SplitWindow mixins
 using SplitWindowMixin = ArgMinMixinBase<ThomasWangHasher, SplitWindow>;
@@ -497,8 +497,8 @@ std::vector<KMer> ArgMinUnrolledMinimize(MinimizeArgs args) {
   return ArgMinUnrolledMixin{}(args);
 }
 
-std::vector<KMer> NtHashArgMinMinimize(MinimizeArgs args) {
-  return NtHashPrecomputedArgMinUnrolledMixin{}(args);
+std::vector<KMer> NtHashArgMinUnrolledMinimize(MinimizeArgs args) {
+  return NtHashArgMinUnrolledMixin{}(args);
 }
 
 // Arg min recovery based implementations
@@ -510,8 +510,8 @@ std::vector<KMer> ArgMinRecoveryUnrolledMinimize(MinimizeArgs args) {
   return ArgMinUnrolledRecoveryMixin{}(args);
 }
 
-std::vector<KMer> NtHashRecoveryMinimize(MinimizeArgs args) {
-  return NtHashPrecomputedArgMinUnrolledRecoveryMixin{}(args);
+std::vector<KMer> NtHashRecoveryUnrolledMinimize(MinimizeArgs args) {
+  return NtHashArgMinUnrolledRecoveryMixin{}(args);
 }
 
 std::vector<KMer> SplitWindowMinimize(MinimizeArgs args) {
